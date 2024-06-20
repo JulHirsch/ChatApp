@@ -28,10 +28,10 @@ public class ClientHandler implements Runnable {
 
             _chatServer.broadcastMessage(name + " connected.");
 
-            String message = _fromClientReader.readLine();
+            String message = _fromClientReader.readLine(); //TODO sanitize string
             while (message != null) {
-                message = _fromClientReader.readLine(); //TODO sanitize string
                 _chatServer.broadcastMessage(name + ": " + message);
+                message = _fromClientReader.readLine();
             }
         } catch (IOException e) {
             //e.printStackTrace();
