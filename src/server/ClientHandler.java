@@ -4,18 +4,16 @@ import java.io.*;
 import java.net.Socket;
 
 public class ClientHandler implements Runnable {
-    private ChatServer _chatServer;
-    private Socket _connectionToClient;
-    private String name;
+    private final ChatServer _chatServer;
+    private final Socket _connectionToClient;
+    private final String _name;
     private BufferedReader _fromClientReader;
     private PrintWriter _toClientWriter;
 
     public ClientHandler(ChatServer chatServer, Socket connectionToClient) {
-
         _chatServer = chatServer;
         _connectionToClient = connectionToClient;
-
-        name = connectionToClient.getInetAddress().getHostAddress(); // set name to ip address
+        _name = connectionToClient.getInetAddress().getHostAddress(); // set name to ip address
 
         new Thread(this).start();
     }
@@ -24,36 +22,49 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             _fromClientReader = new BufferedReader(new InputStreamReader(_connectionToClient.getInputStream()));
-            _toClientWriter = new PrintWriter(new OutputStreamWriter(_connectionToClient.getOutputStream()));
+            _toClientWriter = new PrintWriter(new OutputStreamWriter(_connectionToClient.getOutputStream()), true);
 
-            _chatServer.broadcastMessage(name + " connected.");
+            _chatServer.broadcastMessage(_name + " connected.");
 
-            String message = _fromClientReader.readLine(); //TODO sanitize string
-            while (message != null) {
-                _chatServer.broadcastMessage(name + ": " + message);
-                message = _fromClientReader.readLine();
+            String message;
+            while ((message = _fromClientReader.readLine()) != null) {
+                message = sanitizeMessage(message);
+                _chatServer.broadcastMessage(_name + ": " + message);
             }
         } catch (IOException e) {
-            //e.printStackTrace();
+            // Handle exception (optional logging)
         } finally {
-            _chatServer.removeClient(this);
-            _chatServer.broadcastMessage(name + " disconnected.");
+            cleanup();
+        }
+    }
 
+    private void cleanup() {
+        _chatServer.removeClient(this);
+        _chatServer.broadcastMessage(_name + " disconnected.");
+
+        try {
             if (_fromClientReader != null) {
-                try {
-                    _fromClientReader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                _fromClientReader.close();
             }
             if (_toClientWriter != null) {
                 _toClientWriter.close();
             }
+            if (_connectionToClient != null && !_connectionToClient.isClosed()) {
+                _connectionToClient.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     public void sendMessage(String message) {
-        _toClientWriter.println(message);
-        _toClientWriter.flush();
+        if (_toClientWriter != null) {
+            _toClientWriter.println(message);
+        }
+    }
+
+    private String sanitizeMessage(String message) {
+        // Basic sanitization logic
+        return message.replaceAll("<", "&lt;").replaceAll(">", "&gt;");
     }
 }

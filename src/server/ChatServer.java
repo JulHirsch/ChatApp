@@ -11,7 +11,7 @@ public class ChatServer {
     private List<ClientHandler> _clients;
 
     public ChatServer(int port) {
-        _clients = new CopyOnWriteArrayList<ClientHandler>(); // thread safe
+        _clients = new CopyOnWriteArrayList<>(); // thread safe
 
         try {
             _serverSocket = new ServerSocket(port);
@@ -27,14 +27,7 @@ public class ChatServer {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            if(_serverSocket == null){
-                return;
-            }
-            try {
-                _serverSocket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            cleanup();
         }
     }
 
@@ -43,12 +36,22 @@ public class ChatServer {
     }
 
     public void broadcastMessage(String message) {
-        System.out.println(message);
         if (message == null) {
             return;
         }
+        System.out.println(message);
         for (ClientHandler client : _clients) {
             client.sendMessage(message);
+        }
+    }
+
+    private void cleanup() {
+        if (_serverSocket != null && !_serverSocket.isClosed()) {
+            try {
+                _serverSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
