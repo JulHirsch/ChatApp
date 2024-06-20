@@ -34,7 +34,7 @@ public class ClientHandler implements Runnable {
                 _chatServer.broadcastMessage(name + ": " + message);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            //e.printStackTrace();
         } finally {
             _chatServer.removeClient(this);
             _chatServer.broadcastMessage(name + " disconnected.");
