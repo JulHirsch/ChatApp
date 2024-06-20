@@ -9,8 +9,14 @@ public class Message {
         Text = text;
     }
 
-    public Message(String text, String receiver){
+    public Message(String text, String sender){
         Text = text;
+        Sender = sender;
+    }
+
+    public Message(String text, String sender, String receiver){
+        Text = text;
+        Sender = sender;
         Receiver = receiver;
     }
 }

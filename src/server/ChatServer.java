@@ -43,11 +43,11 @@ public class ChatServer {
         }
         //TODO get the sender - should be set by server
         //message.Sender =
-        System.out.println(message.Text);
+        System.out.println(message.Sender + ": " + message.Text);
 
         if(message.Receiver.equals("global")){
             for (ClientHandler client : _clients) {
-                client.sendMessage(message.Text);
+                client.sendMessage(message);
             }
         } else{
             //TODO send to receiver

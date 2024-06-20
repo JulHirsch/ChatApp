@@ -26,12 +26,12 @@ public class ClientHandler implements Runnable {
             _fromClientReader = new BufferedReader(new InputStreamReader(_connectionToClient.getInputStream()));
             _toClientWriter = new PrintWriter(new OutputStreamWriter(_connectionToClient.getOutputStream()), true);
 
-            _chatServer.sendMessage(new Message(_name + " connected."));
+            _chatServer.sendMessage(new Message(_name + " connected.", "Server"));
 
             String message;
             while ((message = _fromClientReader.readLine()) != null) {
                 message = sanitizeMessage(message);
-                _chatServer.sendMessage(new Message(_name + ": " + message));
+                _chatServer.sendMessage(new Message(message, _name)); //set the sender to avoid the sender being able to intimidate a different sender
             }
         } catch (IOException e) {
             // Handle exception (optional logging)
@@ -42,7 +42,7 @@ public class ClientHandler implements Runnable {
 
     private void cleanup() {
         _chatServer.removeClient(this);
-        _chatServer.sendMessage(new Message(_name + " disconnected."));
+        _chatServer.sendMessage(new Message(_name + " disconnected.", "Server"));
 
         try {
             if (_fromClientReader != null) {
@@ -59,9 +59,9 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    public void sendMessage(String message) {
+    public void sendMessage(Message message) {
         if (_toClientWriter != null) {
-            _toClientWriter.println(message);
+            _toClientWriter.println(message.Sender + ": " + message.Text);
         }
     }
 
