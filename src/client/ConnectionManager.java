@@ -17,13 +17,16 @@ public class ConnectionManager {
         _port = port;
     }
 
+    public void setChatClient(ChatClient chatClient) {
+        _chatClient = chatClient;
+    }
+
     public void start() {
         try {
             _connectionToServer = new Socket(_address, _port);
             _fromServerReader = new BufferedReader(new InputStreamReader(_connectionToServer.getInputStream()));
             _toServerWriter = new PrintWriter(_connectionToServer.getOutputStream(), true);
 
-            _chatClient = new ChatClient(this);
             new Thread(this::receiveMessages).start();
         } catch (IOException e) {
             showErrorAndExit("Connection to server with address \"" + _address + "\" failed.");

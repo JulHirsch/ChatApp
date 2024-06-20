@@ -24,7 +24,8 @@ public class ChatClient extends JFrame implements KeyListener {
             String address = promptForIPAddress();
             if (address != null) {
                 ConnectionManager connectionManager = new ConnectionManager(address, 3141);
-                new ChatClient(connectionManager);
+                ChatClient chatClient = new ChatClient(connectionManager);
+                connectionManager.setChatClient(chatClient);
                 connectionManager.start();
             }
         });
