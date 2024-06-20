@@ -1,5 +1,7 @@
 package server;
 
+import common.Message;
+
 import java.io.*;
 import java.net.Socket;
 
@@ -24,12 +26,12 @@ public class ClientHandler implements Runnable {
             _fromClientReader = new BufferedReader(new InputStreamReader(_connectionToClient.getInputStream()));
             _toClientWriter = new PrintWriter(new OutputStreamWriter(_connectionToClient.getOutputStream()), true);
 
-            _chatServer.broadcastMessage(_name + " connected.");
+            _chatServer.sendMessage(new Message(_name + " connected."));
 
             String message;
             while ((message = _fromClientReader.readLine()) != null) {
                 message = sanitizeMessage(message);
-                _chatServer.broadcastMessage(_name + ": " + message);
+                _chatServer.sendMessage(new Message(_name + ": " + message));
             }
         } catch (IOException e) {
             // Handle exception (optional logging)
@@ -40,7 +42,7 @@ public class ClientHandler implements Runnable {
 
     private void cleanup() {
         _chatServer.removeClient(this);
-        _chatServer.broadcastMessage(_name + " disconnected.");
+        _chatServer.sendMessage(new Message(_name + " disconnected."));
 
         try {
             if (_fromClientReader != null) {

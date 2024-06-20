@@ -1,5 +1,7 @@
 package server;
 
+import common.Message;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -35,14 +37,22 @@ public class ChatServer {
         _clients.remove(client);
     }
 
-    public void broadcastMessage(String message) {
+    public void sendMessage(Message message) {
         if (message == null) {
             return;
         }
-        System.out.println(message);
-        for (ClientHandler client : _clients) {
-            client.sendMessage(message);
+        //TODO get the sender - should be set by server
+        //message.Sender =
+        System.out.println(message.Text);
+
+        if(message.Receiver.equals("global")){
+            for (ClientHandler client : _clients) {
+                client.sendMessage(message.Text);
+            }
+        } else{
+            //TODO send to receiver
         }
+
     }
 
     private void cleanup() {
