@@ -1,6 +1,7 @@
 package client;
 
 import common.Message;
+import common.Utils;
 
 import javax.swing.*;
 import java.awt.*;
