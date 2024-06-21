@@ -1,5 +1,7 @@
 package client;
 
+import common.Message;
+
 import javax.swing.*;
 import java.io.*;
 import java.net.Socket;
@@ -37,6 +39,7 @@ public class ConnectionManager {
         try {
             String message;
             while ((message = _fromServerReader.readLine()) != null) {
+                //TODO convert back from json here!!! and use the message type for append Message
                 _chatClient.appendMessage(message);
             }
         } catch (IOException e) {
@@ -46,9 +49,11 @@ public class ConnectionManager {
         }
     }
 
-    public void sendMessage(String message) {
+    public void sendMessage(Message message) {
         if (_toServerWriter != null) {
-            _toServerWriter.println(message);
+
+            //TODO convert to json here!!!
+            _toServerWriter.println(message.Text);
         }
     }
 

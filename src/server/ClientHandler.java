@@ -31,6 +31,7 @@ public class ClientHandler implements Runnable {
             String message;
             while ((message = _fromClientReader.readLine()) != null) {
                 message = sanitizeMessage(message);
+                //TODO convert back from json here!!!
                 _chatServer.sendMessage(new Message(message, _name)); //set the sender to avoid the sender being able to intimidate a different sender
             }
         } catch (IOException e) {
@@ -61,6 +62,7 @@ public class ClientHandler implements Runnable {
 
     public void sendMessage(Message message) {
         if (_toClientWriter != null) {
+            //TODO convert to json here!!!
             _toClientWriter.println(message.Sender + ": " + message.Text);
         }
     }

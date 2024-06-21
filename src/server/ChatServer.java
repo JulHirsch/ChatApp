@@ -41,8 +41,7 @@ public class ChatServer {
         if (message == null) {
             return;
         }
-        //TODO get the sender - should be set by server
-        //message.Sender =
+
         System.out.println(message.Sender + ": " + message.Text);
 
         if(message.Receiver.equals("global")){
