@@ -6,6 +6,7 @@ public class Message {
     public static final String GLOBAL_RECEIVER = "global";
 
     private final String _sender;
+    private final String _customName;
     private final String _text;
     private final String _receiver;
     private final String _encryptionType;
@@ -15,23 +16,29 @@ public class Message {
 
     // Constructor with text only
     public Message(String text) {
-        this(text, "", GLOBAL_RECEIVER, "", "");
+        this(text, "", GLOBAL_RECEIVER, "", "", "");
     }
 
-    // Constructor with text and sender
-    public Message(String text, String sender) {
-        this(text, sender, GLOBAL_RECEIVER, "", "");
+    // Constructor with text and customName
+    public Message(String text, String customName) {
+        this(text, customName, GLOBAL_RECEIVER, "", "", "");
     }
 
-    // Constructor with text, sender, and receiver
-    public Message(String text, String sender, String receiver) {
-        this(text, sender, receiver, "", "");
+    // Constructor with text, customName, and receiver
+    public Message(String text, String customName, String receiver) {
+        this(text, customName, receiver, "", "", "");
     }
 
     // Constructor with all fields
-    public Message(String text, String sender, String receiver, String encryptionType, String encryptionKey) {
+    public Message(String text, String customName, String receiver, String encryptionType, String encryptionKey) {
+        this(text, "", customName, receiver, encryptionType, encryptionKey);
+    }
+
+    // Constructor with all fields including sender
+    public Message(String text, String sender, String customName, String receiver, String encryptionType, String encryptionKey) {
         this._text = text != null ? text : "";
         this._sender = sender != null ? sender : "";
+        this._customName = customName != null ? customName : "";
         this._receiver = receiver != null ? receiver : GLOBAL_RECEIVER;
         this._encryptionType = encryptionType != null ? encryptionType : "";
         this._encryptionKey = encryptionKey != null ? encryptionKey : "";
@@ -40,6 +47,10 @@ public class Message {
     // Getters
     public String getSender() {
         return _sender;
+    }
+
+    public String getCustomName() {
+        return _customName;
     }
 
     public String getText() {

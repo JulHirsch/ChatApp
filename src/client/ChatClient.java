@@ -10,6 +10,7 @@ import java.awt.event.KeyListener;
 
 public class ChatClient extends JFrame implements KeyListener {
     private final ConnectionManager _connectionManager;
+    private final String _clientName;
 
     // GUI
     private JTextArea _outputTextArea;
@@ -17,9 +18,10 @@ public class ChatClient extends JFrame implements KeyListener {
     private JTextField _recipientTextField;
     private JScrollPane _outputScrollPane;
 
-    public ChatClient(ConnectionManager connectionManager) {
+    public ChatClient(ConnectionManager connectionManager, String clientName) {
         super("Chat");
         _connectionManager = connectionManager;
+        _clientName = clientName;
         initializeGUI();
     }
 
@@ -28,7 +30,8 @@ public class ChatClient extends JFrame implements KeyListener {
             String address = promptForIPAddress();
             if (address != null) {
                 ConnectionManager connectionManager = new ConnectionManager(address, 3141);
-                ChatClient chatClient = new ChatClient(connectionManager);
+                String clientName = promptForClientName();
+                ChatClient chatClient = new ChatClient(connectionManager, clientName);
                 connectionManager.setChatClient(chatClient);
                 connectionManager.start();
             }
@@ -42,6 +45,15 @@ public class ChatClient extends JFrame implements KeyListener {
             address = JOptionPane.showInputDialog("IP address");
         }
         return address;
+    }
+
+    private static String promptForClientName() {
+        String name = JOptionPane.showInputDialog("Your name");
+        while (name == null || name.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Name cannot be empty");
+            name = JOptionPane.showInputDialog("Your name");
+        }
+        return name;
     }
 
     private void initializeGUI() {
@@ -74,9 +86,18 @@ public class ChatClient extends JFrame implements KeyListener {
         setVisible(true);
     }
 
-    public void appendMessage(String message) {
+    public void appendMessage(Message message) {
         SwingUtilities.invokeLater(() -> {
-            _outputTextArea.append(message + "\n");
+            String displayMessage;
+            if (message.getSender().equals("Server")) {
+                displayMessage = String.format("Server: %s", message.getText());
+            } else if (!message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
+                //TODO check if this allows to write a private message to everyone by using 127.0.0.1
+                displayMessage = String.format("Private message from %s: %s", message.getCustomName(), message.getText());
+            } else {
+                displayMessage = String.format("%s (%s): %s", message.getCustomName(), message.getSender(), message.getText());
+            }
+            _outputTextArea.append(displayMessage + "\n");
             _outputScrollPane.getVerticalScrollBar().setValue(_outputScrollPane.getVerticalScrollBar().getMaximum());
         });
     }
@@ -92,7 +113,7 @@ public class ChatClient extends JFrame implements KeyListener {
             String text = _inputTextField.getText();
             String recipient = _recipientTextField.getText().isEmpty() ? Message.GLOBAL_RECEIVER : _recipientTextField.getText();
             if (!text.isEmpty()) {
-                Message message = new Message(text, "", recipient, "", "");
+                Message message = new Message(text, _clientName, recipient, "", "");
                 _connectionManager.sendMessage(message);
                 _inputTextField.setText("");
             }

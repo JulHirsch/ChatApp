@@ -8,14 +8,14 @@ import java.net.Socket;
 public class ClientHandler implements Runnable {
     private final ChatServer _chatServer;
     private final Socket _connectionToClient;
-    public final String _name;
+    private final String _ipAddress;
     private BufferedReader _fromClientReader;
     private PrintWriter _toClientWriter;
 
     public ClientHandler(ChatServer chatServer, Socket connectionToClient) {
         _chatServer = chatServer;
         _connectionToClient = connectionToClient;
-        _name = connectionToClient.getInetAddress().getHostAddress(); // set name to ip address
+        _ipAddress = connectionToClient.getInetAddress().getHostAddress(); // Set name to IP address
 
         new Thread(this).start();
     }
@@ -26,12 +26,14 @@ public class ClientHandler implements Runnable {
             _fromClientReader = new BufferedReader(new InputStreamReader(_connectionToClient.getInputStream()));
             _toClientWriter = new PrintWriter(new OutputStreamWriter(_connectionToClient.getOutputStream()), true);
 
-            _chatServer.sendMessage(new Message(_name + " connected.", "Server"));
+            _chatServer.sendMessage(new Message(_ipAddress + " connected.", "Server", _ipAddress, Message.GLOBAL_RECEIVER, "", ""));
 
             String jsonMessage;
             while ((jsonMessage = _fromClientReader.readLine()) != null) {
                 Message message = Message.fromJson(jsonMessage);
-                _chatServer.sendMessage(new Message(message.getText(), _name, message.getReceiver(), message.getEncryptionType(), message.getEncryptionKey())); // Set the sender to avoid impersonation
+                // Overwrite the sender with the client's IP address
+                Message forwardedMessage = new Message(message.getText(), _ipAddress, message.getCustomName(), message.getReceiver(), message.getEncryptionType(), message.getEncryptionKey());
+                _chatServer.sendMessage(forwardedMessage);
             }
         } catch (IOException e) {
             // Handle exception (optional logging)
@@ -40,20 +42,9 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    public void sendMessage(Message message) {
-        if (_toClientWriter != null) {
-            String jsonMessage = message.toJson();
-            _toClientWriter.println(jsonMessage);
-        }
-    }
-
-    public String getName(){
-        return _name;
-    }
-
     private void cleanup() {
         _chatServer.removeClient(this);
-        _chatServer.sendMessage(new Message(_name + " disconnected.", "Server"));
+        _chatServer.sendMessage(new Message(_ipAddress + " disconnected.", "Server", _ipAddress, Message.GLOBAL_RECEIVER, "", ""));
 
         try {
             if (_fromClientReader != null) {
@@ -70,8 +61,14 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private String sanitizeMessage(String message) {
-        // Basic sanitization logic
-        return message.replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    public void sendMessage(Message message) {
+        if (_toClientWriter != null) {
+            String jsonMessage = message.toJson();
+            _toClientWriter.println(jsonMessage);
+        }
+    }
+
+    public String getName() {
+        return _ipAddress;
     }
 }

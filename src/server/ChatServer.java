@@ -13,7 +13,7 @@ public class ChatServer {
     private List<ClientHandler> _clients;
 
     public ChatServer(int port) {
-        _clients = new CopyOnWriteArrayList<>(); // thread safe
+        _clients = new CopyOnWriteArrayList<>(); // Thread-safe list
 
         try {
             _serverSocket = new ServerSocket(port);
@@ -42,7 +42,7 @@ public class ChatServer {
             return;
         }
 
-        String logMessage = String.format("from %s to %s: %s", message.getSender(), message.getReceiver(), message.getText());
+        String logMessage = String.format("from %s (%s) to %s: %s", message.getCustomName(), message.getSender(), message.getReceiver(), message.getText());
         System.out.println(logMessage);
 
         if (message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
@@ -67,8 +67,11 @@ public class ChatServer {
                     if (client.getName().equals(message.getSender())) {
                         Message notification = new Message(
                                 String.format("User %s is not online.", message.getReceiver()),
-                                "Server",
-                                message.getSender()
+                                "Server",  // The actual sender of the notification
+                                "Server",  // The custom name of the sender of the notification
+                                client.getName(),  // The original sender's IP address
+                                "",  // Encryption type
+                                ""   // Encryption key
                         );
                         client.sendMessage(notification);
                         break;

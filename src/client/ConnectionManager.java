@@ -35,24 +35,24 @@ public class ConnectionManager {
         }
     }
 
-    public void sendMessage(Message message) {
-        if (_toServerWriter != null) {
-            String jsonMessage = message.toJson();
-            _toServerWriter.println(jsonMessage);
-        }
-    }
-
     private void receiveMessages() {
         try {
             String jsonMessage;
             while ((jsonMessage = _fromServerReader.readLine()) != null) {
                 Message message = Message.fromJson(jsonMessage);
-                _chatClient.appendMessage(message.getSender() + ": " + message.getText());
+                _chatClient.appendMessage(message);
             }
         } catch (IOException e) {
             showErrorAndExit("Connection lost.");
         } finally {
             cleanupResources();
+        }
+    }
+
+    public void sendMessage(Message message) {
+        if (_toServerWriter != null) {
+            String jsonMessage = message.toJson();
+            _toServerWriter.println(jsonMessage);
         }
     }
 
