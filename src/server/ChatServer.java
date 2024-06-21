@@ -42,18 +42,37 @@ public class ChatServer {
             return;
         }
 
-        System.out.println(message.getSender() + ": " + message.getText());
+        String logMessage = String.format("from %s to %s: %s", message.getSender(), message.getReceiver(), message.getText());
+        System.out.println(logMessage);
 
         if (message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
             for (ClientHandler client : _clients) {
                 client.sendMessage(message);
             }
         } else {
+            boolean receiverFound = false;
+
             // Send to specific receiver
             for (ClientHandler client : _clients) {
                 if (client.getName().equals(message.getReceiver())) {
                     client.sendMessage(message);
+                    receiverFound = true;
                     break;
+                }
+            }
+
+            // Respond to sender if receiver is not online
+            if (!receiverFound) {
+                for (ClientHandler client : _clients) {
+                    if (client.getName().equals(message.getSender())) {
+                        Message notification = new Message(
+                                String.format("User %s is not online.", message.getReceiver()),
+                                "Server",
+                                message.getSender()
+                        );
+                        client.sendMessage(notification);
+                        break;
+                    }
                 }
             }
         }
