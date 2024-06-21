@@ -42,16 +42,21 @@ public class ChatServer {
             return;
         }
 
-        System.out.println(message.Sender + ": " + message.Text);
+        System.out.println(message.getSender() + ": " + message.getText());
 
-        if(message.Receiver.equals("global")){
+        if (message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
             for (ClientHandler client : _clients) {
                 client.sendMessage(message);
             }
-        } else{
-            //TODO send to receiver
+        } else {
+            // Send to specific receiver
+            for (ClientHandler client : _clients) {
+                if (client.getName().equals(message.getReceiver())) {
+                    client.sendMessage(message);
+                    break;
+                }
+            }
         }
-
     }
 
     private void cleanup() {

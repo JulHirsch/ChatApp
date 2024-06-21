@@ -35,25 +35,24 @@ public class ConnectionManager {
         }
     }
 
+    public void sendMessage(Message message) {
+        if (_toServerWriter != null) {
+            String jsonMessage = message.toJson();
+            _toServerWriter.println(jsonMessage);
+        }
+    }
+
     private void receiveMessages() {
         try {
-            String message;
-            while ((message = _fromServerReader.readLine()) != null) {
-                //TODO convert back from json here!!! and use the message type for append Message
-                _chatClient.appendMessage(message);
+            String jsonMessage;
+            while ((jsonMessage = _fromServerReader.readLine()) != null) {
+                Message message = Message.fromJson(jsonMessage);
+                _chatClient.appendMessage(message.getSender() + ": " + message.getText());
             }
         } catch (IOException e) {
             showErrorAndExit("Connection lost.");
         } finally {
             cleanupResources();
-        }
-    }
-
-    public void sendMessage(Message message) {
-        if (_toServerWriter != null) {
-
-            //TODO convert to json here!!!
-            _toServerWriter.println(message.Text);
         }
     }
 

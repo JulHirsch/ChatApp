@@ -90,15 +90,9 @@ public class ChatClient extends JFrame implements KeyListener {
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
             String text = _inputTextField.getText();
-            String recipient = _recipientTextField.getText();
+            String recipient = _recipientTextField.getText().isEmpty() ? Message.GLOBAL_RECEIVER : _recipientTextField.getText();
             if (!text.isEmpty()) {
-                Message message = new Message(text);
-
-                // TODO check here an on the server if valid ip address
-                if(!recipient.isEmpty()){
-                    message.Receiver = recipient;
-                }
-
+                Message message = new Message(text, "", recipient, "", "");
                 _connectionManager.sendMessage(message);
                 _inputTextField.setText("");
             }

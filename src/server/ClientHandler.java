@@ -8,7 +8,7 @@ import java.net.Socket;
 public class ClientHandler implements Runnable {
     private final ChatServer _chatServer;
     private final Socket _connectionToClient;
-    private final String _name;
+    public final String _name;
     private BufferedReader _fromClientReader;
     private PrintWriter _toClientWriter;
 
@@ -28,17 +28,27 @@ public class ClientHandler implements Runnable {
 
             _chatServer.sendMessage(new Message(_name + " connected.", "Server"));
 
-            String message;
-            while ((message = _fromClientReader.readLine()) != null) {
-                message = sanitizeMessage(message);
-                //TODO convert back from json here!!!
-                _chatServer.sendMessage(new Message(message, _name)); //set the sender to avoid the sender being able to intimidate a different sender
+            String jsonMessage;
+            while ((jsonMessage = _fromClientReader.readLine()) != null) {
+                Message message = Message.fromJson(jsonMessage);
+                _chatServer.sendMessage(new Message(message.getText(), _name, message.getReceiver(), message.getEncryptionType(), message.getEncryptionKey())); // Set the sender to avoid impersonation
             }
         } catch (IOException e) {
             // Handle exception (optional logging)
         } finally {
             cleanup();
         }
+    }
+
+    public void sendMessage(Message message) {
+        if (_toClientWriter != null) {
+            String jsonMessage = message.toJson();
+            _toClientWriter.println(jsonMessage);
+        }
+    }
+
+    public String getName(){
+        return _name;
     }
 
     private void cleanup() {
@@ -57,13 +67,6 @@ public class ClientHandler implements Runnable {
             }
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    public void sendMessage(Message message) {
-        if (_toClientWriter != null) {
-            //TODO convert to json here!!!
-            _toClientWriter.println(message.Sender + ": " + message.Text);
         }
     }
 
