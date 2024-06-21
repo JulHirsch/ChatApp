@@ -51,27 +51,31 @@ public class ChatServer {
             }
         } else {
             boolean receiverFound = false;
+            boolean senderFound = false;
 
-            // Send to specific receiver
+            // Send to specific receiver and ensure the sender gets it as well
             for (ClientHandler client : _clients) {
                 if (client.getName().equals(message.getReceiver())) {
                     client.sendMessage(message);
                     receiverFound = true;
-                    break;
+                }
+                if (client.getName().equals(message.getSender())) {
+                    client.sendMessage(message);
+                    senderFound = true;
                 }
             }
 
             // Respond to sender if receiver is not online
-            if (!receiverFound) {
+            if (!receiverFound && senderFound) {
                 for (ClientHandler client : _clients) {
                     if (client.getName().equals(message.getSender())) {
                         Message notification = new Message(
                                 String.format("User %s is not online.", message.getReceiver()),
-                                "Server",  // The actual sender of the notification
-                                "Server",  // The custom name of the sender of the notification
-                                client.getName(),  // The original sender's IP address
-                                "",  // Encryption type
-                                ""   // Encryption key
+                                "Server",
+                                "Server",
+                                client.getName(),
+                                "",
+                                ""
                         );
                         client.sendMessage(notification);
                         break;

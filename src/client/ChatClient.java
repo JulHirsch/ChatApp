@@ -92,8 +92,8 @@ public class ChatClient extends JFrame implements KeyListener {
             if (message.getSender().equals("Server")) {
                 displayMessage = String.format("Server: %s", message.getText());
             } else if (!message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
-                //TODO check if this allows to write a private message to everyone by using 127.0.0.1
-                displayMessage = String.format("Private message from %s: %s", message.getCustomName(), message.getText());
+                //TODO check if this allows to write a private message to everyone or only the user itself by using 127.0.0.1
+                displayMessage = String.format("Private message from %s (%s) to %s: %s", message.getCustomName(), message.getSender(), message.getReceiver(), message.getText());
             } else {
                 displayMessage = String.format("%s (%s): %s", message.getCustomName(), message.getSender(), message.getText());
             }
