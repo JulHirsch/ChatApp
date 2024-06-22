@@ -146,7 +146,7 @@ public class ChatClient extends JFrame implements KeyListener {
         if (message.getSender().equals("Server")) {
             displayMessage = String.format(message.getText());
         } else if (!message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
-            displayMessage = String.format(message.getText());
+            displayMessage = String.format("%s: %s", message.getCustomName(), message.getText());
         } else {
             displayMessage = String.format("%s (%s): %s", message.getCustomName(), message.getSender(), message.getText());
         }
