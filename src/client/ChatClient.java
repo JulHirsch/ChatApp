@@ -92,6 +92,12 @@ public class ChatClient extends JFrame implements KeyListener {
     }
 
     private void addChatTab(String title, String recipient) {
+        //Check if tab for recipient already exists
+        if (_chatAreas.containsKey(recipient)) {
+            _tabbedPane.setSelectedComponent(_chatAreas.get(recipient).getParent());
+            return;
+        }
+
         JTextArea chatArea = new JTextArea();
         chatArea.setEditable(false);
         chatArea.setBorder(BorderFactory.createTitledBorder("Chat"));
