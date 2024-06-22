@@ -7,21 +7,27 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatClient extends JFrame implements KeyListener {
     private final ConnectionManager _connectionManager;
     private final String _clientName;
 
-    // GUI
-    private JTextArea _outputTextArea;
+    private JTabbedPane _tabbedPane;
     private JTextField _inputTextField;
     private JTextField _recipientTextField;
-    private JScrollPane _outputScrollPane;
+    private Map<String, JTextArea> _chatAreas;
+    private Map<String, List<Message>> _messageHistory;
 
     public ChatClient(ConnectionManager connectionManager, String clientName) {
         super("Chat");
         _connectionManager = connectionManager;
         _clientName = clientName;
+        _chatAreas = new HashMap<>();
+        _messageHistory = new HashMap<>();
         initializeGUI();
     }
 
@@ -57,12 +63,6 @@ public class ChatClient extends JFrame implements KeyListener {
     }
 
     private void initializeGUI() {
-        _outputTextArea = new JTextArea();
-        _outputTextArea.setEditable(false);
-        _outputTextArea.setBorder(BorderFactory.createTitledBorder("Chat"));
-
-        _outputScrollPane = new JScrollPane(_outputTextArea);
-
         _recipientTextField = new JTextField();
         _recipientTextField.setBorder(BorderFactory.createTitledBorder("Recipient address"));
         _recipientTextField.addKeyListener(this);
@@ -71,13 +71,18 @@ public class ChatClient extends JFrame implements KeyListener {
         _inputTextField.setBorder(BorderFactory.createTitledBorder("Type message"));
         _inputTextField.addKeyListener(this);
 
+        _tabbedPane = new JTabbedPane();
+        _tabbedPane.addChangeListener(e -> updateRecipientField());
+
+        addChatTab("Global", Message.GLOBAL_RECEIVER);
+
         JPanel inputPanel = new JPanel();
         inputPanel.setLayout(new BorderLayout());
         inputPanel.add(_recipientTextField, BorderLayout.NORTH);
         inputPanel.add(_inputTextField, BorderLayout.SOUTH);
 
         setLayout(new BorderLayout());
-        add(_outputScrollPane, BorderLayout.CENTER);
+        add(_tabbedPane, BorderLayout.CENTER);
         add(inputPanel, BorderLayout.SOUTH);
 
         setSize(400, 300);
@@ -86,20 +91,50 @@ public class ChatClient extends JFrame implements KeyListener {
         setVisible(true);
     }
 
+    private void addChatTab(String title, String recipient) {
+        JTextArea chatArea = new JTextArea();
+        chatArea.setEditable(false);
+        chatArea.setBorder(BorderFactory.createTitledBorder("Chat"));
+
+        JScrollPane scrollPane = new JScrollPane(chatArea);
+        _tabbedPane.addTab(title, scrollPane);
+
+        _chatAreas.put(recipient, chatArea);
+        _messageHistory.put(recipient, new CopyOnWriteArrayList<>());
+    }
+
+    private void updateRecipientField() {
+        int selectedIndex = _tabbedPane.getSelectedIndex();
+        String title = _tabbedPane.getTitleAt(selectedIndex);
+        _recipientTextField.setText(title.equals("Global") ? "" : title);
+    }
+
     public void appendMessage(Message message) {
         SwingUtilities.invokeLater(() -> {
-            String displayMessage;
-            if (message.getSender().equals("Server")) {
-                displayMessage = String.format("Server: %s", message.getText());
-            } else if (!message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
-                //TODO check if this allows to write a private message to everyone or only the user itself by using 127.0.0.1
-                displayMessage = String.format("Private message from %s (%s) to %s: %s", message.getCustomName(), message.getSender(), message.getReceiver(), message.getText());
-            } else {
-                displayMessage = String.format("%s (%s): %s", message.getCustomName(), message.getSender(), message.getText());
+            String recipient = message.getReceiver().equals(Message.GLOBAL_RECEIVER) ? Message.GLOBAL_RECEIVER : message.getSender();
+            JTextArea chatArea = _chatAreas.get(recipient);
+            if (chatArea == null) {
+                addChatTab(recipient, recipient);
+                chatArea = _chatAreas.get(recipient);
             }
-            _outputTextArea.append(displayMessage + "\n");
-            _outputScrollPane.getVerticalScrollBar().setValue(_outputScrollPane.getVerticalScrollBar().getMaximum());
+
+            String displayMessage = getDisplayMessage(message);
+            chatArea.append(displayMessage + "\n");
+            chatArea.setCaretPosition(chatArea.getDocument().getLength());
+            _messageHistory.get(recipient).add(message);
         });
+    }
+
+    private static String getDisplayMessage(Message message) {
+        String displayMessage;
+        if (message.getSender().equals("Server")) {
+            displayMessage = String.format("Server: %s", message.getText());
+        } else if (!message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
+            displayMessage = String.format("Private message from %s (%s) to %s: %s", message.getCustomName(), message.getSender(), message.getReceiver(), message.getText());
+        } else {
+            displayMessage = String.format("%s (%s): %s", message.getCustomName(), message.getSender(), message.getText());
+        }
+        return displayMessage;
     }
 
     @Override
@@ -111,7 +146,8 @@ public class ChatClient extends JFrame implements KeyListener {
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
             String text = _inputTextField.getText();
-            String recipient = _recipientTextField.getText().isEmpty() ? Message.GLOBAL_RECEIVER : _recipientTextField.getText();
+            int selectedIndex = _tabbedPane.getSelectedIndex();
+            String recipient = _tabbedPane.getTitleAt(selectedIndex).equals("Global") ? Message.GLOBAL_RECEIVER : _tabbedPane.getTitleAt(selectedIndex);
             if (!text.isEmpty()) {
                 Message message = new Message(text, _clientName, recipient, "", "");
                 _connectionManager.sendMessage(message);
