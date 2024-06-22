@@ -33,6 +33,10 @@ public class ChatServer {
         }
     }
 
+    public static void main(String[] args) {
+        new ChatServer(3141);
+    }
+
     public void removeClient(ClientHandler client) {
         _clients.remove(client);
     }
@@ -47,26 +51,27 @@ public class ChatServer {
 
         if (message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
             for (ClientHandler client : _clients) {
+                if (client.getName().equals(message.getSender())) {
+                    continue;
+                }
                 client.sendMessage(message);
             }
         } else {
             boolean receiverFound = false;
-            boolean senderFound = false;
 
             // Send to specific receiver and ensure the sender gets it as well
             for (ClientHandler client : _clients) {
-                if (client.getName().equals(message.getReceiver())) {
-                    client.sendMessage(message);
-                    receiverFound = true;
+                if (!client.getName().equals(message.getReceiver())) {
+                    continue;
                 }
-                if (client.getName().equals(message.getSender())) {
-                    client.sendMessage(message);
-                    senderFound = true;
-                }
+
+                client.sendMessage(message);
+                receiverFound = true;
+
             }
 
             // Respond to sender if receiver is not online
-            if (!receiverFound && senderFound) {
+            if (!receiverFound) {
                 for (ClientHandler client : _clients) {
                     if (client.getName().equals(message.getSender())) {
                         Message notification = new Message(
@@ -93,9 +98,5 @@ public class ChatServer {
                 e.printStackTrace();
             }
         }
-    }
-
-    public static void main(String[] args) {
-        new ChatServer(3141);
     }
 }
