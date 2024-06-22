@@ -152,8 +152,10 @@ public class ChatClient extends JFrame implements KeyListener {
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
             String text = _inputTextField.getText();
-            int selectedIndex = _tabbedPane.getSelectedIndex();
-            String recipient = _tabbedPane.getTitleAt(selectedIndex).equals("Global") ? Message.GLOBAL_RECEIVER : _tabbedPane.getTitleAt(selectedIndex);
+            String recipient = _recipientTextField.getText();
+            if(recipient.isEmpty()){
+                recipient = Message.GLOBAL_RECEIVER;
+            }
             if (!text.isEmpty()) {
                 Message message = new Message(text, _clientName, recipient, "", "");
                 _connectionManager.sendMessage(message);
