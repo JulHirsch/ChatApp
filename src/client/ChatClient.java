@@ -67,14 +67,14 @@ public class ChatClient extends JFrame implements KeyListener {
         _recipientTextField.setBorder(BorderFactory.createTitledBorder("Recipient address"));
         _recipientTextField.addKeyListener(this);
 
-        _inputTextField = new JTextField();
-        _inputTextField.setBorder(BorderFactory.createTitledBorder("Type message"));
-        _inputTextField.addKeyListener(this);
-
         _tabbedPane = new JTabbedPane();
         _tabbedPane.addChangeListener(e -> updateRecipientField());
 
         addChatTab("Global", Message.GLOBAL_RECEIVER);
+
+        _inputTextField = new JTextField();
+        _inputTextField.setBorder(BorderFactory.createTitledBorder("Type message"));
+        _inputTextField.addKeyListener(this);
 
         JPanel inputPanel = new JPanel();
         inputPanel.setLayout(new BorderLayout());
