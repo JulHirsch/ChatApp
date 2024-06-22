@@ -117,26 +117,36 @@ public class ChatClient extends JFrame implements KeyListener {
 
     public void appendMessage(Message message) {
         SwingUtilities.invokeLater(() -> {
-            String recipient = message.getReceiver().equals(Message.GLOBAL_RECEIVER) ? Message.GLOBAL_RECEIVER : message.getSender();
-            JTextArea chatArea = _chatAreas.get(recipient);
-            if (chatArea == null) {
-                addChatTab(recipient, recipient);
-                chatArea = _chatAreas.get(recipient);
-            }
-
-            String displayMessage = getDisplayMessage(message);
-            chatArea.append(displayMessage + "\n");
-            chatArea.setCaretPosition(chatArea.getDocument().getLength());
-            _messageHistory.get(recipient).add(message);
+            processMessage(message, false);
         });
+    }
+
+    private void processMessage(Message message, boolean isOutgoing) {
+        String recipient;
+        if (isOutgoing) {
+            recipient = message.getReceiver();
+        } else {
+            recipient = message.getReceiver().equals(Message.GLOBAL_RECEIVER) ? Message.GLOBAL_RECEIVER : message.getSender();
+        }
+
+        JTextArea chatArea = _chatAreas.get(recipient);
+        if (chatArea == null) {
+            addChatTab(recipient, recipient);
+            chatArea = _chatAreas.get(recipient);
+        }
+
+        String displayMessage = getDisplayMessage(message);
+        chatArea.append(displayMessage + "\n");
+        chatArea.setCaretPosition(chatArea.getDocument().getLength());
+        _messageHistory.get(recipient).add(message);
     }
 
     private static String getDisplayMessage(Message message) {
         String displayMessage;
         if (message.getSender().equals("Server")) {
-            displayMessage = String.format("Server: %s", message.getText());
+            displayMessage = String.format(message.getText());
         } else if (!message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
-            displayMessage = String.format("Private message from %s (%s) to %s: %s", message.getCustomName(), message.getSender(), message.getReceiver(), message.getText());
+            displayMessage = String.format(message.getText());
         } else {
             displayMessage = String.format("%s (%s): %s", message.getCustomName(), message.getSender(), message.getText());
         }
@@ -159,6 +169,7 @@ public class ChatClient extends JFrame implements KeyListener {
             if (!text.isEmpty()) {
                 Message message = new Message(text, _clientName, recipient, "", "");
                 _connectionManager.sendMessage(message);
+                processMessage(message, true);
                 _inputTextField.setText("");
             }
         }
