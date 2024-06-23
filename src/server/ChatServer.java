@@ -29,17 +29,21 @@ public class ChatServer implements IChatServer {
         server.start();
     }
 
+    private static void logMessage(Message message) {
+        String logMessage = String.format(
+                "from %s (%s) to %s: %s",
+                message.getCustomName(),
+                message.getSender(),
+                message.getReceiver(),
+                message.getText());
+        System.out.println(logMessage);
+    }
+
     public void start() {
         running = true;
         serverThread = new Thread(() -> {
             try {
-                while (running) {
-                    System.out.println("Waiting for new client...");
-                    Socket connectionToClient = _serverSocket.accept();
-                    IClientHandler client = new ClientHandler(this, connectionToClient);
-                    _clients.add(client);
-                    System.out.println("Accepted new client");
-                }
+                tryToAcceptClients();
             } catch (IOException e) {
                 if (running) {
                     e.printStackTrace();
@@ -51,17 +55,35 @@ public class ChatServer implements IChatServer {
         serverThread.start();
     }
 
+    private void tryToAcceptClients() throws IOException {
+        while (running) {
+            System.out.println("Waiting for new client...");
+            Socket connectionToClient = _serverSocket.accept();
+            IClientHandler client = new ClientHandler(this, connectionToClient);
+            _clients.add(client);
+            System.out.println("Accepted new client");
+        }
+    }
+
     public void stop() {
         running = false;
         try {
-            if (_serverSocket != null && !_serverSocket.isClosed()) {
-                _serverSocket.close();
-            }
-            if (serverThread != null) {
-                serverThread.join();
-            }
+            tryToCloseServerSocket();
+            tryToTerminateServerThread();
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void tryToCloseServerSocket() throws IOException {
+        if (_serverSocket != null && !_serverSocket.isClosed()) {
+            _serverSocket.close();
+        }
+    }
+
+    private void tryToTerminateServerThread() throws InterruptedException {
+        if (serverThread != null) {
+            serverThread.join();
         }
     }
 
@@ -76,44 +98,56 @@ public class ChatServer implements IChatServer {
             return;
         }
 
-        String logMessage = String.format("from %s (%s) to %s: %s", message.getCustomName(), message.getSender(), message.getReceiver(), message.getText());
-        System.out.println(logMessage);
+        logMessage(message);
 
-        if (message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
-            for (IClientHandler client : _clients) {
-                if (client.getName().equals(message.getSender())) {
-                    continue;
-                }
-                client.sendMessage(message);
-            }
+        if (message.isGlobal()) {
+            sendMessageToAllClientsExcludingTheSender(message);
         } else {
-            boolean receiverFound = false;
+            handlePrivateMessage(message);
+        }
+    }
 
-            for (IClientHandler client : _clients) {
-                if (!client.getName().equals(message.getReceiver())) {
-                    continue;
-                }
+    private void handlePrivateMessage(Message message) {
+        boolean receiverFound = false;
 
-                client.sendMessage(message);
-                receiverFound = true;
+        for (IClientHandler client : _clients) {
+            if (!client.getName().equals(message.getReceiver())) {
+                continue;
+            }
+            client.sendMessage(message);
+            receiverFound = true;
+        }
+
+        if (!receiverFound) {
+            respondErrorToSender(message);
+        }
+    }
+
+    private void respondErrorToSender(Message message) {
+        for (IClientHandler client : _clients) {
+            if (!client.getName().equals(message.getSender())) {
+                continue;
             }
 
-            if (!receiverFound) {
-                for (IClientHandler client : _clients) {
-                    if (client.getName().equals(message.getSender())) {
-                        Message notification = new Message(
-                                String.format("User %s is not online.", message.getReceiver()),
-                                "Server",
-                                "Server",
-                                client.getName(),
-                                "",
-                                ""
-                        );
-                        client.sendMessage(notification);
-                        break;
-                    }
-                }
+            Message notification = new Message(
+                    String.format("User %s is not online.", message.getReceiver()),
+                    "Server",
+                    "Server",
+                    client.getName(),
+                    "",
+                    ""
+            );
+            client.sendMessage(notification);
+            break;
+        }
+    }
+
+    private void sendMessageToAllClientsExcludingTheSender(Message message) {
+        for (IClientHandler client : _clients) {
+            if (client.getName().equals(message.getSender())) {
+                continue;
             }
+            client.sendMessage(message);
         }
     }
 
@@ -122,12 +156,14 @@ public class ChatServer implements IChatServer {
     }
 
     private void cleanup() {
-        if (_serverSocket != null && !_serverSocket.isClosed()) {
-            try {
-                _serverSocket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        if (_serverSocket == null || _serverSocket.isClosed()) {
+            return;
+        }
+
+        try {
+            _serverSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
