@@ -14,21 +14,6 @@ public class Message {
 
     private static final Gson gson = new Gson();
 
-    // Constructor with text only
-    public Message(String text) {
-        this(text, "", GLOBAL_RECEIVER, "", "", "");
-    }
-
-    // Constructor with text and customName
-    public Message(String text, String customName) {
-        this(text, customName, GLOBAL_RECEIVER, "", "", "");
-    }
-
-    // Constructor with text, customName, and receiver
-    public Message(String text, String customName, String receiver) {
-        this(text, customName, receiver, "", "", "");
-    }
-
     // Constructor with all fields
     public Message(String text, String customName, String receiver, String encryptionType, String encryptionKey) {
         this(text, "", customName, receiver, encryptionType, encryptionKey);
