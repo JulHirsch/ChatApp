@@ -32,16 +32,7 @@ public class ChatClient extends JFrame implements KeyListener {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            String address = promptForIPAddress();
-            if (address != null) {
-                ConnectionManager connectionManager = new ConnectionManager(address, 3141);
-                String clientName = promptForClientName();
-                ChatClient chatClient = new ChatClient(connectionManager, clientName);
-                connectionManager.setChatClient(chatClient);
-                connectionManager.start();
-            }
-        });
+        SwingUtilities.invokeLater(ChatClient::ConnectToServer);
     }
 
     private static String promptForIPAddress() {
@@ -60,6 +51,64 @@ public class ChatClient extends JFrame implements KeyListener {
             name = JOptionPane.showInputDialog("Your name");
         }
         return name;
+    }
+
+    private static String getDisplayMessage(Message message) {
+        String displayMessage;
+        if (message.getSender().equals("Server")) {
+            displayMessage = String.format(message.getText());
+        } else if (!message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
+            displayMessage = String.format("%s: %s", message.getCustomName(), message.getText());
+        } else {
+            displayMessage = String.format("%s (%s): %s", message.getCustomName(), message.getSender(), message.getText());
+        }
+        return displayMessage;
+    }
+
+    private static void ConnectToServer() {
+        String address = promptForIPAddress();
+        if (address == null) {
+            return;
+        }
+
+        ConnectionManager connectionManager = new ConnectionManager(address, 3141);
+        String clientName = promptForClientName();
+        ChatClient chatClient = new ChatClient(connectionManager, clientName);
+        connectionManager.setChatClient(chatClient);
+        connectionManager.start();
+    }
+
+    public void appendMessage(Message message) {
+        SwingUtilities.invokeLater(() -> {
+            processMessage(message, false);
+        });
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+        // No action needed
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+            String text = _inputTextField.getText();
+            String recipient = _recipientTextField.getText();
+            if (recipient.isEmpty()) {
+                recipient = Message.GLOBAL_RECEIVER;
+            }
+            if (!text.isEmpty()) {
+                Message message = new Message(text, _clientName, recipient, "", "");
+                _connectionManager.sendMessage(message);
+                processMessage(message, true);
+                _inputTextField.setText("");
+            }
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        // No action needed
     }
 
     private void initializeGUI() {
@@ -92,8 +141,7 @@ public class ChatClient extends JFrame implements KeyListener {
     }
 
     private void addChatTab(String title, String recipient) {
-        //Check if tab for recipient already exists
-        if (_chatAreas.containsKey(recipient)) {
+        if (DoesRecipientAlreadyExist(recipient)) {
             _tabbedPane.setSelectedComponent(_chatAreas.get(recipient).getParent());
             return;
         }
@@ -109,16 +157,14 @@ public class ChatClient extends JFrame implements KeyListener {
         _messageHistory.put(recipient, new CopyOnWriteArrayList<>());
     }
 
+    private boolean DoesRecipientAlreadyExist(String recipient) {
+        return _chatAreas.containsKey(recipient);
+    }
+
     private void updateRecipientField() {
         int selectedIndex = _tabbedPane.getSelectedIndex();
         String title = _tabbedPane.getTitleAt(selectedIndex);
         _recipientTextField.setText(title.equals("Global") ? "" : title);
-    }
-
-    public void appendMessage(Message message) {
-        SwingUtilities.invokeLater(() -> {
-            processMessage(message, false);
-        });
     }
 
     private void processMessage(Message message, boolean isOutgoing) {
@@ -139,44 +185,5 @@ public class ChatClient extends JFrame implements KeyListener {
         chatArea.append(displayMessage + "\n");
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
         _messageHistory.get(recipient).add(message);
-    }
-
-    private static String getDisplayMessage(Message message) {
-        String displayMessage;
-        if (message.getSender().equals("Server")) {
-            displayMessage = String.format(message.getText());
-        } else if (!message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
-            displayMessage = String.format("%s: %s", message.getCustomName(), message.getText());
-        } else {
-            displayMessage = String.format("%s (%s): %s", message.getCustomName(), message.getSender(), message.getText());
-        }
-        return displayMessage;
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {
-        // No action needed
-    }
-
-    @Override
-    public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-            String text = _inputTextField.getText();
-            String recipient = _recipientTextField.getText();
-            if(recipient.isEmpty()){
-                recipient = Message.GLOBAL_RECEIVER;
-            }
-            if (!text.isEmpty()) {
-                Message message = new Message(text, _clientName, recipient, "", "");
-                _connectionManager.sendMessage(message);
-                processMessage(message, true);
-                _inputTextField.setText("");
-            }
-        }
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-        // No action needed
     }
 }
