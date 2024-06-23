@@ -12,74 +12,74 @@ import static org.mockito.Mockito.*;
 
 public class ChatServerTest {
 
-    private ChatServer chatServer;
-    private IClientHandler senderHandler;
-    private IClientHandler otherHandler;
+    private ChatServer _chatServer;
+    private IClientHandler _senderHandler;
+    private IClientHandler _otherHandler;
 
     @BeforeEach
     public void setUp() throws Exception {
-        chatServer = new ChatServer(3141);
-        senderHandler = Mockito.mock(IClientHandler.class);
-        otherHandler = Mockito.mock(IClientHandler.class);
-        chatServer.start();
+        _chatServer = new ChatServer(3141);
+        _senderHandler = Mockito.mock(IClientHandler.class);
+        _otherHandler = Mockito.mock(IClientHandler.class);
+        _chatServer.start();
     }
 
     @AfterEach
     public void tearDown() {
-        chatServer.stop();
+        _chatServer.stop();
     }
 
     @Test
     public void testSendMessageToGlobal() {
-        Message message = new Message("Hello, world!","client1", "custom", "global", "", "");
+        Message message = new Message("Hello, world!", "client1", "custom", "global", "", "");
 
-        List<IClientHandler> clients = chatServer.getClients();
-        clients.add(senderHandler);
-        clients.add(otherHandler);
+        List<IClientHandler> clients = _chatServer.getClients();
+        clients.add(_senderHandler);
+        clients.add(_otherHandler);
 
-        when(senderHandler.getName()).thenReturn("client1");
-        when(otherHandler.getName()).thenReturn("client2");
+        when(_senderHandler.getName()).thenReturn("client1");
+        when(_otherHandler.getName()).thenReturn("client2");
 
-        chatServer.sendMessage(message);
+        _chatServer.sendMessage(message);
 
-        verify(otherHandler, times(1)).sendMessage(message);
-        verify(senderHandler, never()).sendMessage(any(Message.class));
+        verify(_otherHandler, times(1)).sendMessage(message);
+        verify(_senderHandler, never()).sendMessage(any(Message.class));
     }
 
     @Test
     public void testSendMessageToSpecificClient() {
-        Message message = new Message("Hello, client2!","client1", "custom", "client2", "", "");
+        Message message = new Message("Hello, client2!", "client1", "custom", "client2", "", "");
 
-        List<IClientHandler> clients = chatServer.getClients();
-        clients.add(senderHandler);
-        clients.add(otherHandler);
+        List<IClientHandler> clients = _chatServer.getClients();
+        clients.add(_senderHandler);
+        clients.add(_otherHandler);
 
-        when(senderHandler.getName()).thenReturn("client1");
-        when(otherHandler.getName()).thenReturn("client2");
+        when(_senderHandler.getName()).thenReturn("client1");
+        when(_otherHandler.getName()).thenReturn("client2");
 
-        chatServer.sendMessage(message);
+        _chatServer.sendMessage(message);
 
-        verify(otherHandler, times(1)).sendMessage(message);
-        verify(senderHandler, never()).sendMessage(any(Message.class));
+        verify(_otherHandler, times(1)).sendMessage(message);
+        verify(_senderHandler, never()).sendMessage(any(Message.class));
     }
 
     @Test
     public void testSendMessageToNonExistingClient() {
-        Message message = new Message("Hello, client2!","client1", "custom", "client2", "", "");
+        Message message = new Message("Hello, client2!", "client1", "custom", "client2", "", "");
 
-        List<IClientHandler> clients = chatServer.getClients();
-        clients.add(senderHandler);
-        clients.add(otherHandler);
+        List<IClientHandler> clients = _chatServer.getClients();
+        clients.add(_senderHandler);
+        clients.add(_otherHandler);
 
         // Mock the client names
-        when(senderHandler.getName()).thenReturn("client1");
-        when(otherHandler.getName()).thenReturn("client3");
+        when(_senderHandler.getName()).thenReturn("client1");
+        when(_otherHandler.getName()).thenReturn("client3");
 
         // Send message to non-existing client "client2"
-        chatServer.sendMessage(message);
+        _chatServer.sendMessage(message);
 
         // Verify that sender gets a notification about the non-existing client
-        verify(senderHandler, times(1)).sendMessage(argThat(arg -> arg.getText().contains("User client2 is not online.")));
-        verify(otherHandler, never()).sendMessage(any(Message.class));
+        verify(_senderHandler, times(1)).sendMessage(argThat(arg -> arg.getText().contains("User client2 is not online.")));
+        verify(_otherHandler, never()).sendMessage(any(Message.class));
     }
 }
