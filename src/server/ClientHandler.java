@@ -26,7 +26,7 @@ public class ClientHandler implements Runnable {
             _fromClientReader = new BufferedReader(new InputStreamReader(_connectionToClient.getInputStream()));
             _toClientWriter = new PrintWriter(new OutputStreamWriter(_connectionToClient.getOutputStream()), true);
 
-            _chatServer.sendMessage(new Message(_ipAddress + " connected.", "Server", _ipAddress, Message.GLOBAL_RECEIVER, "", ""));
+            _chatServer.sendMessage(new Message(STR."\{_ipAddress} connected.", "Server", "Server", Message.GLOBAL_RECEIVER, "", ""));
 
             String jsonMessage;
             while ((jsonMessage = _fromClientReader.readLine()) != null) {
