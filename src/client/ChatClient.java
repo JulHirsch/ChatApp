@@ -2,6 +2,7 @@ package client;
 
 import common.Message;
 import common.Utils;
+import server.IClientHandler;
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class ChatClient extends JFrame implements KeyListener {
+public class ChatClient extends JFrame implements KeyListener, IChatClient {
     private final ConnectionManager _connectionManager;
     private final String _clientName;
 
