@@ -8,39 +8,69 @@ import java.net.Socket;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class ChatServer {
+public class ChatServer implements IChatServer {
     private ServerSocket _serverSocket;
-    private List<ClientHandler> _clients;
+    private List<IClientHandler> _clients;
+    private volatile boolean running;
+    private Thread serverThread;
 
     public ChatServer(int port) {
-        _clients = new CopyOnWriteArrayList<>(); // Thread-safe list
-
+        _clients = new CopyOnWriteArrayList<>();
         try {
             _serverSocket = new ServerSocket(port);
             System.out.println("Server started on port " + port);
-
-            while (true) {
-                System.out.println("Waiting for new client...");
-                Socket connectionToClient = _serverSocket.accept();
-                ClientHandler client = new ClientHandler(this, connectionToClient);
-                _clients.add(client);
-                System.out.println("Accepted new client");
-            }
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            cleanup();
         }
     }
 
     public static void main(String[] args) {
-        new ChatServer(3141);
+        ChatServer server = new ChatServer(3141);
+        server.start();
     }
 
-    public void removeClient(ClientHandler client) {
+    public void start() {
+        running = true;
+        serverThread = new Thread(() -> {
+            try {
+                while (running) {
+                    System.out.println("Waiting for new client...");
+                    Socket connectionToClient = _serverSocket.accept();
+                    IClientHandler client = new ClientHandler(this, connectionToClient);
+                    _clients.add(client);
+                    System.out.println("Accepted new client");
+                }
+            } catch (IOException e) {
+                if (running) {
+                    e.printStackTrace();
+                }
+            } finally {
+                cleanup();
+            }
+        });
+        serverThread.start();
+    }
+
+    public void stop() {
+        running = false;
+        try {
+            if (_serverSocket != null && !_serverSocket.isClosed()) {
+                _serverSocket.close();
+            }
+            if (serverThread != null) {
+                serverThread.join();
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void removeClient(IClientHandler client) {
         _clients.remove(client);
     }
 
+    @Override
     public void sendMessage(Message message) {
         if (message == null) {
             return;
@@ -50,7 +80,7 @@ public class ChatServer {
         System.out.println(logMessage);
 
         if (message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
-            for (ClientHandler client : _clients) {
+            for (IClientHandler client : _clients) {
                 if (client.getName().equals(message.getSender())) {
                     continue;
                 }
@@ -59,20 +89,17 @@ public class ChatServer {
         } else {
             boolean receiverFound = false;
 
-            // Send to specific receiver and ensure the sender gets it as well
-            for (ClientHandler client : _clients) {
+            for (IClientHandler client : _clients) {
                 if (!client.getName().equals(message.getReceiver())) {
                     continue;
                 }
 
                 client.sendMessage(message);
                 receiverFound = true;
-
             }
 
-            // Respond to sender if receiver is not online
             if (!receiverFound) {
-                for (ClientHandler client : _clients) {
+                for (IClientHandler client : _clients) {
                     if (client.getName().equals(message.getSender())) {
                         Message notification = new Message(
                                 String.format("User %s is not online.", message.getReceiver()),
@@ -88,6 +115,10 @@ public class ChatServer {
                 }
             }
         }
+    }
+
+    protected List<IClientHandler> getClients() {
+        return _clients;
     }
 
     private void cleanup() {

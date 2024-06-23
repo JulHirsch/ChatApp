@@ -1,21 +1,20 @@
 package server;
 
 import common.Message;
-
 import java.io.*;
 import java.net.Socket;
 
-public class ClientHandler implements Runnable {
-    private final ChatServer _chatServer;
+public class ClientHandler implements Runnable, IClientHandler {
+    private final IChatServer _chatServer;
     private final Socket _connectionToClient;
     private final String _ipAddress;
     private BufferedReader _fromClientReader;
     private PrintWriter _toClientWriter;
 
-    public ClientHandler(ChatServer chatServer, Socket connectionToClient) {
+    public ClientHandler(IChatServer chatServer, Socket connectionToClient) {
         _chatServer = chatServer;
         _connectionToClient = connectionToClient;
-        _ipAddress = connectionToClient.getInetAddress().getHostAddress(); // Set name to IP address
+        _ipAddress = connectionToClient.getInetAddress().getHostAddress();
 
         new Thread(this).start();
     }
@@ -26,12 +25,11 @@ public class ClientHandler implements Runnable {
             _fromClientReader = new BufferedReader(new InputStreamReader(_connectionToClient.getInputStream()));
             _toClientWriter = new PrintWriter(new OutputStreamWriter(_connectionToClient.getOutputStream()), true);
 
-            _chatServer.sendMessage(new Message(STR."\{_ipAddress} connected.", "Server", "Server", Message.GLOBAL_RECEIVER, "", ""));
+            _chatServer.sendMessage(new Message(_ipAddress + " connected.", "Server", "Server", Message.GLOBAL_RECEIVER, "", ""));
 
             String jsonMessage;
             while ((jsonMessage = _fromClientReader.readLine()) != null) {
                 Message message = Message.fromJson(jsonMessage);
-                // Overwrite the sender with the client's IP address
                 Message forwardedMessage = new Message(message.getText(), _ipAddress, message.getCustomName(), message.getReceiver(), message.getEncryptionType(), message.getEncryptionKey());
                 _chatServer.sendMessage(forwardedMessage);
             }
@@ -61,6 +59,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    @Override
     public void sendMessage(Message message) {
         if (_toClientWriter != null) {
             String jsonMessage = message.toJson();
@@ -68,6 +67,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    @Override
     public String getName() {
         return _ipAddress;
     }
