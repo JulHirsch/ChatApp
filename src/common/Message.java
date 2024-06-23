@@ -54,6 +54,10 @@ public class Message {
         return _encryptionKey;
     }
 
+    public boolean isGlobal(){
+        return _receiver.equals(Message.GLOBAL_RECEIVER);
+    }
+
     // Serialize to JSON
     public String toJson() {
         return gson.toJson(this);
