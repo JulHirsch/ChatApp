@@ -9,20 +9,20 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-public class ConnectionManager {
+public class ConnectionManager implements IConnectionManager {
     private final String _address;
     private final int _port;
     private Socket _connectionToServer;
     private BufferedReader _fromServerReader;
     private PrintWriter _toServerWriter;
-    private ChatClient _chatClient;
+    private IChatClient _chatClient;
 
     public ConnectionManager(String address, int port) {
         _address = address;
         _port = port;
     }
 
-    public void setChatClient(ChatClient chatClient) {
+    public void setChatClient(IChatClient chatClient) {
         _chatClient = chatClient;
     }
 
