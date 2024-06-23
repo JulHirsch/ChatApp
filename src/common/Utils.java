@@ -8,6 +8,9 @@ public class Utils {
     private static final Pattern IP_PATTERN = Pattern.compile(IP_REGEX);
 
     public static boolean isValidIPAddress(String address) {
+        if(address == null){
+            return false;
+        }
         return IP_PATTERN.matcher(address).matches();
     }
 }
