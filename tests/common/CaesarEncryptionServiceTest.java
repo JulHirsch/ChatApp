@@ -1,5 +1,7 @@
 package common;
 
+import common.Encryption.CaesarEncryptionService;
+import common.Encryption.CaesarKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

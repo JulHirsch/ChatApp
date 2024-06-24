@@ -1,4 +1,4 @@
-package common;
+package common.Encryption;
 
 public record CaesarKey(int shift) implements IKey {
     public CaesarKey(int shift) {

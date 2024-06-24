@@ -1,4 +1,4 @@
-package common;
+package common.Encryption;
 
 public class CaesarEncryptionService implements IEncryptionService<CaesarKey> {
     private static final int ALPHABET_SIZE = 26;

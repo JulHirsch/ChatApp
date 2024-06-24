@@ -1,4 +1,4 @@
-package common;
+package common.Encryption;
 
 public interface IKey {
 }
