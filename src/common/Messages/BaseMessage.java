@@ -1,6 +1,7 @@
 package common.Messages;
 
 import com.google.gson.Gson;
+import common.Encryption.EncryptionType;
 
 public abstract class BaseMessage implements IMessage {
     public static final String GLOBAL_RECEIVER = "global";
@@ -10,12 +11,22 @@ public abstract class BaseMessage implements IMessage {
     private final String _receiver;
     private final String _customName;
     private String _sender;
+    private final EncryptionType _encryptionType;
 
     public BaseMessage(MessageType messageType, String sender, String receiver, String customName) {
         this._messageType = messageType;
         this._sender = sender != null ? sender : "";
         this._receiver = receiver != null ? receiver : GLOBAL_RECEIVER;
         this._customName = customName != null ? customName : "";
+        this._encryptionType = EncryptionType.NONE;
+    }
+
+    public BaseMessage(MessageType messageType, String sender, String receiver, String customName, EncryptionType encryptionType) {
+        this._messageType = messageType;
+        this._sender = sender != null ? sender : "";
+        this._receiver = receiver != null ? receiver : GLOBAL_RECEIVER;
+        this._customName = customName != null ? customName : "";
+        this._encryptionType = encryptionType;
     }
 
     public MessageType getMessageType() {
@@ -40,6 +51,10 @@ public abstract class BaseMessage implements IMessage {
 
     public String getCustomName() {
         return _customName;
+    }
+
+    public EncryptionType getEncryptionType() {
+        return _encryptionType;
     }
 
     public String toJson() {
