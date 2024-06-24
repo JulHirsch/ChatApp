@@ -1,8 +1,8 @@
-package common;
+package common.Messages;
 
 import com.google.gson.Gson;
 
-public class Message {
+public class OldMessage {
     public static final String GLOBAL_RECEIVER = "global";
     private static final Gson gson = new Gson();
     private final String _sender;
@@ -13,12 +13,12 @@ public class Message {
     private final String _encryptionKey;
 
     // Constructor with all fields
-    public Message(String text, String customName, String receiver, String encryptionType, String encryptionKey) {
+    public OldMessage(String text, String customName, String receiver, String encryptionType, String encryptionKey) {
         this(text, "", customName, receiver, encryptionType, encryptionKey);
     }
 
     // Constructor with all fields including sender
-    public Message(String text, String sender, String customName, String receiver, String encryptionType, String encryptionKey) {
+    public OldMessage(String text, String sender, String customName, String receiver, String encryptionType, String encryptionKey) {
         this._text = text != null ? text : "";
         this._sender = sender != null ? sender : "";
         this._customName = customName != null ? customName : "";
@@ -28,8 +28,8 @@ public class Message {
     }
 
     // Deserialize from JSON
-    public static Message fromJson(String jsonString) {
-        return gson.fromJson(jsonString, Message.class);
+    public static OldMessage fromJson(String jsonString) {
+        return gson.fromJson(jsonString, OldMessage.class);
     }
 
     // Getters
@@ -58,7 +58,7 @@ public class Message {
     }
 
     public boolean isGlobal() {
-        return _receiver.equals(Message.GLOBAL_RECEIVER);
+        return _receiver.equals(OldMessage.GLOBAL_RECEIVER);
     }
 
     // Serialize to JSON

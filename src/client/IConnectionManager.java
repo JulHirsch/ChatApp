@@ -1,11 +1,11 @@
 package client;
 
-import common.Message;
+import common.Messages.IMessage;
 
 public interface IConnectionManager {
     void setChatClient(IChatClient chatClient);
 
     void start();
 
-    void sendMessage(Message message);
+    void sendMessage(IMessage message);
 }

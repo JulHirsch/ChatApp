@@ -1,6 +1,6 @@
 package client;
 
-import common.Message;
+import common.Messages.*;
 
 import javax.swing.*;
 import java.io.BufferedReader;
@@ -42,8 +42,8 @@ public class ConnectionManager implements IConnectionManager {
         try {
             String jsonMessage;
             while ((jsonMessage = _fromServerReader.readLine()) != null) {
-                Message message = Message.fromJson(jsonMessage);
-                _chatClient.appendMessage(message);
+                IMessage message = MessageDeserializer.fromJson(jsonMessage);
+                processMessage(message);
             }
         } catch (IOException e) {
             showErrorAndExit("Connection lost.");
@@ -52,7 +52,26 @@ public class ConnectionManager implements IConnectionManager {
         }
     }
 
-    public void sendMessage(Message message) {
+    private void processMessage(IMessage message) {
+        switch (message.getMessageType()) {
+            case TEXT:
+                TextMessage textMessage = (TextMessage) message;
+                _chatClient.appendMessage(textMessage);
+                break;
+            case KEY_EXCHANGE:
+                KeyExchangeMessage keyExchangeMessage = (KeyExchangeMessage) message;
+                processKeyExchangeMessage(keyExchangeMessage);
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown message type: " + message.getMessageType());
+        }
+    }
+
+    private void processKeyExchangeMessage(KeyExchangeMessage keyExchangeMessage) {
+        System.out.println("Received key exchange message from " + keyExchangeMessage.getSender());
+    }
+
+    public void sendMessage(IMessage message) {
         if (_toServerWriter != null) {
             String jsonMessage = message.toJson();
             _toServerWriter.println(jsonMessage);

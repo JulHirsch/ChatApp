@@ -1,6 +1,7 @@
 package client;
 
-import common.Message;
+import common.Messages.BaseMessage;
+import common.Messages.TextMessage;
 import common.Utils;
 
 import javax.swing.*;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatClient extends JFrame implements KeyListener, IChatClient {
+    public static final String GLOBAL_TAB_NAME = "Global";
     private final ConnectionManager _connectionManager;
     private final String _clientName;
 
@@ -20,7 +22,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
     private JTextField _inputTextField;
     private JTextField _recipientTextField;
     private Map<String, JTextArea> _chatAreas;
-    private Map<String, List<Message>> _messageHistory;
+    private Map<String, List<TextMessage>> _messageHistory;
 
     public ChatClient(ConnectionManager connectionManager, String clientName) {
         super("Chat");
@@ -53,11 +55,11 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         return name;
     }
 
-    private static String getDisplayMessage(Message message) {
+    private static String getDisplayMessage(TextMessage message) {
         String displayMessage;
         if (message.getSender().equals("Server")) {
             displayMessage = String.format(message.getText());
-        } else if (!message.getReceiver().equals(Message.GLOBAL_RECEIVER)) {
+        } else if (!message.isGlobal()) {
             displayMessage = String.format("%s: %s", message.getCustomName(), message.getText());
         } else {
             displayMessage = String.format("%s (%s): %s", message.getCustomName(), message.getSender(), message.getText());
@@ -78,7 +80,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         connectionManager.start();
     }
 
-    public void appendMessage(Message message) {
+    public void appendMessage(TextMessage message) {
         SwingUtilities.invokeLater(() -> {
             processMessage(message, false);
         });
@@ -95,10 +97,10 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
             String text = _inputTextField.getText();
             String recipient = _recipientTextField.getText();
             if (recipient.isEmpty()) {
-                recipient = Message.GLOBAL_RECEIVER;
+                recipient = BaseMessage.GLOBAL_RECEIVER;
             }
             if (!text.isEmpty()) {
-                Message message = new Message(text, _clientName, recipient, "", "");
+                BaseMessage message = new TextMessage(text, recipient, "", _clientName);
                 _connectionManager.sendMessage(message);
                 processMessage(message, true);
                 _inputTextField.setText("");
@@ -119,7 +121,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         _tabbedPane = new JTabbedPane();
         _tabbedPane.addChangeListener(e -> updateRecipientField());
 
-        addChatTab("Global", Message.GLOBAL_RECEIVER);
+        addChatTab(GLOBAL_TAB_NAME, BaseMessage.GLOBAL_RECEIVER);
 
         _inputTextField = new JTextField();
         _inputTextField.setBorder(BorderFactory.createTitledBorder("Type message"));
@@ -164,15 +166,15 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
     private void updateRecipientField() {
         int selectedIndex = _tabbedPane.getSelectedIndex();
         String title = _tabbedPane.getTitleAt(selectedIndex);
-        _recipientTextField.setText(title.equals("Global") ? "" : title);
+        _recipientTextField.setText(title.equals(GLOBAL_TAB_NAME) ? "" : title);
     }
 
-    private void processMessage(Message message, boolean isOutgoing) {
+    private void processMessage(BaseMessage message, boolean isOutgoing) {
         String recipient;
         if (isOutgoing) {
             recipient = message.getReceiver();
         } else {
-            recipient = message.getReceiver().equals(Message.GLOBAL_RECEIVER) ? Message.GLOBAL_RECEIVER : message.getSender();
+            recipient = message.isGlobal() ? BaseMessage.GLOBAL_RECEIVER : message.getSender();
         }
 
         JTextArea chatArea = _chatAreas.get(recipient);
@@ -181,9 +183,11 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
             chatArea = _chatAreas.get(recipient);
         }
 
-        String displayMessage = getDisplayMessage(message);
-        chatArea.append(displayMessage + "\n");
-        chatArea.setCaretPosition(chatArea.getDocument().getLength());
-        _messageHistory.get(recipient).add(message);
+        if (message instanceof TextMessage) {
+            String displayMessage = getDisplayMessage((TextMessage) message);
+            chatArea.append(displayMessage + "\n");
+            chatArea.setCaretPosition(chatArea.getDocument().getLength());
+            _messageHistory.get(recipient).add((TextMessage) message);
+        }
     }
 }

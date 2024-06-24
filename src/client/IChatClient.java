@@ -1,7 +1,7 @@
 package client;
 
-import common.Message;
+import common.Messages.TextMessage;
 
 public interface IChatClient {
-    void appendMessage(Message message);
+    void appendMessage(TextMessage message);
 }

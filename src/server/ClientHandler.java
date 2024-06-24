@@ -1,6 +1,6 @@
 package server;
 
-import common.Message;
+import common.Messages.*;
 
 import java.io.*;
 import java.net.Socket;
@@ -26,12 +26,13 @@ public class ClientHandler implements Runnable, IClientHandler {
             _fromClientReader = new BufferedReader(new InputStreamReader(_connectionToClient.getInputStream()));
             _toClientWriter = new PrintWriter(new OutputStreamWriter(_connectionToClient.getOutputStream()), true);
 
-            _chatServer.sendMessage(new Message(_ipAddress + " connected.", "Server", "Server", Message.GLOBAL_RECEIVER, "", ""));
+            _chatServer.sendMessage(new TextMessage(_ipAddress + " connected.", BaseMessage.GLOBAL_RECEIVER, "Server", "Server"));
 
             String jsonMessage;
             while ((jsonMessage = _fromClientReader.readLine()) != null) {
-                Message message = Message.fromJson(jsonMessage);
-                Message forwardedMessage = new Message(message.getText(), _ipAddress, message.getCustomName(), message.getReceiver(), message.getEncryptionType(), message.getEncryptionKey());
+                IMessage message = MessageDeserializer.fromJson(jsonMessage);
+                BaseMessage forwardedMessage = (BaseMessage) message;
+                forwardedMessage.setSender(_ipAddress);
                 _chatServer.sendMessage(forwardedMessage);
             }
         } catch (IOException e) {
@@ -43,7 +44,7 @@ public class ClientHandler implements Runnable, IClientHandler {
 
     private void cleanup() {
         _chatServer.removeClient(this);
-        _chatServer.sendMessage(new Message(_ipAddress + " disconnected.", "Server", _ipAddress, Message.GLOBAL_RECEIVER, "", ""));
+        _chatServer.sendMessage(new TextMessage(_ipAddress + " disconnected.", BaseMessage.GLOBAL_RECEIVER, "Server", "Server"));
 
         try {
             if (_fromClientReader != null) {
@@ -61,7 +62,7 @@ public class ClientHandler implements Runnable, IClientHandler {
     }
 
     @Override
-    public void sendMessage(Message message) {
+    public void sendMessage(BaseMessage message) {
         if (_toClientWriter != null) {
             String jsonMessage = message.toJson();
             _toClientWriter.println(jsonMessage);

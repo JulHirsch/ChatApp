@@ -1,6 +1,8 @@
 package server;
 
-import common.Message;
+import common.Messages.BaseMessage;
+import common.Messages.KeyExchangeMessage;
+import common.Messages.TextMessage;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -29,14 +31,23 @@ public class ChatServer implements IChatServer {
         server.start();
     }
 
-    private static void logMessage(Message message) {
-        String logMessage = String.format(
-                "from %s (%s) to %s: %s",
-                message.getCustomName(),
-                message.getSender(),
-                message.getReceiver(),
-                message.getText());
-        System.out.println(logMessage);
+    private static void logMessage(BaseMessage message) {
+        if (message instanceof TextMessage m) {
+            String logMessage = String.format(
+                    "Text from %s (%s) to %s: %s",
+                    m.getCustomName(),
+                    m.getSender(),
+                    m.getReceiver(),
+                    m.getText());
+            System.out.println(logMessage);
+        } else if (message instanceof KeyExchangeMessage k) {
+            String logMessage = String.format(
+                    "Key exchange from %s (%s) to %s: %s",
+                    k.getCustomName(),
+                    k.getSender(),
+                    k.getReceiver(),
+                    k.getEncryptionKey());
+        }
     }
 
     public void start() {
@@ -93,7 +104,7 @@ public class ChatServer implements IChatServer {
     }
 
     @Override
-    public void sendMessage(Message message) {
+    public void sendMessage(BaseMessage message) {
         if (message == null) {
             return;
         }
@@ -107,7 +118,7 @@ public class ChatServer implements IChatServer {
         }
     }
 
-    private void handlePrivateMessage(Message message) {
+    private void handlePrivateMessage(BaseMessage message) {
         boolean receiverFound = false;
 
         for (IClientHandler client : _clients) {
@@ -123,26 +134,24 @@ public class ChatServer implements IChatServer {
         }
     }
 
-    private void respondErrorToSender(Message message) {
+    private void respondErrorToSender(BaseMessage message) {
         for (IClientHandler client : _clients) {
             if (!client.getName().equals(message.getSender())) {
                 continue;
             }
 
-            Message notification = new Message(
+            BaseMessage notification = new TextMessage(
                     String.format("User %s is not online.", message.getReceiver()),
-                    "Server",
-                    "Server",
                     client.getName(),
-                    "",
-                    ""
+                    "Server",
+                    "Server"
             );
             client.sendMessage(notification);
             break;
         }
     }
 
-    private void sendMessageToAllClientsExcludingTheSender(Message message) {
+    private void sendMessageToAllClientsExcludingTheSender(BaseMessage message) {
         for (IClientHandler client : _clients) {
             if (client.getName().equals(message.getSender())) {
                 continue;

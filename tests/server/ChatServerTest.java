@@ -1,6 +1,7 @@
 package server;
 
-import common.Message;
+import common.Messages.BaseMessage;
+import common.Messages.TextMessage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ public class ChatServerTest {
 
     @Test
     public void testSendMessageToGlobal() {
-        Message message = new Message("Hello, world!", "client1", "custom", "global", "", "");
+        BaseMessage message = new TextMessage("Hello, world!", "global", "client1", "custom");
 
         List<IClientHandler> clients = _chatServer.getClients();
         clients.add(_senderHandler);
@@ -43,12 +44,12 @@ public class ChatServerTest {
         _chatServer.sendMessage(message);
 
         verify(_otherHandler, times(1)).sendMessage(message);
-        verify(_senderHandler, never()).sendMessage(any(Message.class));
+        verify(_senderHandler, never()).sendMessage(any(BaseMessage.class));
     }
 
     @Test
     public void testSendMessageToSpecificClient() {
-        Message message = new Message("Hello, client2!", "client1", "custom", "client2", "", "");
+        BaseMessage message = new TextMessage("Hello, client2!", "client2", "client1", "custom");
 
         List<IClientHandler> clients = _chatServer.getClients();
         clients.add(_senderHandler);
@@ -60,12 +61,12 @@ public class ChatServerTest {
         _chatServer.sendMessage(message);
 
         verify(_otherHandler, times(1)).sendMessage(message);
-        verify(_senderHandler, never()).sendMessage(any(Message.class));
+        verify(_senderHandler, never()).sendMessage(any(BaseMessage.class));
     }
 
     @Test
     public void testSendMessageToNonExistingClient() {
-        Message message = new Message("Hello, client2!", "client1", "custom", "client2", "", "");
+        BaseMessage message = new TextMessage("Hello, client2!", "client2", "client1", "custom");
 
         List<IClientHandler> clients = _chatServer.getClients();
         clients.add(_senderHandler);
@@ -79,7 +80,7 @@ public class ChatServerTest {
         _chatServer.sendMessage(message);
 
         // Verify that sender gets a notification about the non-existing client
-        verify(_senderHandler, times(1)).sendMessage(argThat(arg -> arg.getText().contains("User client2 is not online.")));
-        verify(_otherHandler, never()).sendMessage(any(Message.class));
+        verify(_senderHandler, times(1)).sendMessage(argThat(arg -> arg instanceof TextMessage && ((TextMessage) arg).getText().contains("User client2 is not online.")));
+        verify(_otherHandler, never()).sendMessage(any(BaseMessage.class));
     }
 }

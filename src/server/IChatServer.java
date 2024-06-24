@@ -1,9 +1,9 @@
 package server;
 
-import common.Message;
+import common.Messages.BaseMessage;
 
 public interface IChatServer {
     void removeClient(IClientHandler client);
 
-    void sendMessage(Message message);
+    void sendMessage(BaseMessage message);
 }

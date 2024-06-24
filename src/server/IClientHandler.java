@@ -1,9 +1,9 @@
 package server;
 
-import common.Message;
+import common.Messages.BaseMessage;
 
 public interface IClientHandler {
-    void sendMessage(Message message);
+    void sendMessage(BaseMessage message);
 
     String getName();
 }
