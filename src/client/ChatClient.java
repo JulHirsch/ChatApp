@@ -1,9 +1,10 @@
 package client;
 
+import com.formdev.flatlaf.FlatLightLaf;
+import common.Encryption.*;
 import common.Messages.BaseMessage;
 import common.Messages.TextMessage;
 import common.Utils;
-import com.formdev.flatlaf.FlatLightLaf;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,6 +24,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
     private JTextField _inputTextField;
     private JTextField _recipientTextField;
     private Map<String, JTextArea> _chatAreas;
+    private Map<String, EncryptionInfo> _chatEncryptionInfos;
     private Map<String, List<TextMessage>> _messageHistory;
     private boolean _isInitialized = false;
 
@@ -32,6 +34,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         _clientName = clientName;
         _chatAreas = new HashMap<>();
         _messageHistory = new HashMap<>();
+        _chatEncryptionInfos = new HashMap<>();
         initializeGUI();
     }
 
@@ -101,19 +104,65 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-            String text = _inputTextField.getText();
-            String recipient = _recipientTextField.getText();
-            if (recipient.isEmpty()) {
-                recipient = BaseMessage.GLOBAL_RECEIVER;
-            }
-            if (!text.isEmpty()) {
-                BaseMessage message = new TextMessage(text, recipient, "", _clientName);
-                _connectionManager.sendMessage(message);
-                processMessage(message, true);
-                _inputTextField.setText("");
-            }
+        if (e.getKeyCode() != KeyEvent.VK_ENTER) {
+            return;
         }
+
+        String text = _inputTextField.getText();
+        String recipient = _recipientTextField.getText();
+
+        if (text.isEmpty()) {
+            return;
+        }
+
+        if (recipient.isEmpty()) {
+            recipient = BaseMessage.GLOBAL_RECEIVER;
+        }
+
+        BaseMessage message = new TextMessage(text, recipient, "", _clientName);
+        processMessage(message, true);
+
+        EncryptionInfo encryptionInfo = _chatEncryptionInfos.get(recipient);
+
+        if (recipient.equals(GLOBAL_TAB_NAME) || encryptionInfo == null || encryptionInfo.getType() == EncryptionType.NONE) {
+            _connectionManager.sendMessage(message);
+        } else {
+            String cipherText = "";
+
+            switch (encryptionInfo.getType()) {
+                case CAESAR:
+                    CaesarEncryptionService caesarService = new CaesarEncryptionService();
+                    cipherText = caesarService.encrypt(text, (CaesarKey) encryptionInfo.getKey());
+                    break;
+                case RSA:
+                    // TODO: Implement RSA encryption logic
+                    break;
+                case NONE:
+                default:
+                    // No encryption needed
+                    break;
+            }
+
+            BaseMessage encryptedMessage = new TextMessage(cipherText, recipient, "", _clientName);
+            _connectionManager.sendMessage(encryptedMessage);
+        }
+
+        /*//TODO cleanup
+        if (recipient.equals(GLOBAL_TAB_NAME) || _chatEncryptionInfos.get(recipient).getType() == EncryptionType.NONE) {
+            BaseMessage message = new TextMessage(text, recipient, "", _clientName);
+            processMessage(message, true);
+            _connectionManager.sendMessage(message);
+        } else if (_chatEncryptionInfos.get(recipient).getType() == EncryptionType.CAESAR) {
+            BaseMessage message = new TextMessage(text, recipient, "", _clientName);
+            processMessage(message, true);
+
+            CaesarEncryptionService encryptionService = new CaesarEncryptionService();
+            String cipherText = encryptionService.encrypt(text, (CaesarKey) _chatEncryptionInfos.get(recipient).getKey());
+            BaseMessage encryptedMessage = new TextMessage(cipherText, recipient, "", _clientName);
+            _connectionManager.sendMessage(encryptedMessage);
+        }*/
+
+        _inputTextField.setText("");
     }
 
     @Override
@@ -170,30 +219,53 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
 
     private void addNewChatTab() {
         String recipient = JOptionPane.showInputDialog("Enter recipient name");
-        if (recipient != null && !recipient.trim().isEmpty()) {
-            String[] encryptionOptions = {"None", "RSA", "AES"};
-            String encryptionType = (String) JOptionPane.showInputDialog(null, "Select Encryption Type",
-                    "Encryption", JOptionPane.QUESTION_MESSAGE, null, encryptionOptions, encryptionOptions[0]);
-
-            String encryptionKey = null;
-            if (!encryptionType.equals("None")) {
-                encryptionKey = JOptionPane.showInputDialog("Enter Encryption Key");
-            }
-
-            // Store encryption settings for the new chat
-            //_encryptionTypes.put(recipient, encryptionType);
-            //_encryptionKeys.put(recipient, encryptionKey);
-
-            // Add chat tab and select it
-            addChatTab(recipient, recipient);
-            _tabbedPane.setSelectedIndex(_tabbedPane.getTabCount() - 1); // Select the newly added tab
-        } else {
+        if (recipient == null || recipient.trim().isEmpty()) {
             _tabbedPane.setSelectedIndex(0); // Go back to global tab if creation is cancelled
+            return;
         }
+
+        // Using enum for encryption options
+        EncryptionType[] encryptionOptions = EncryptionType.values();
+        EncryptionType encryptionType = (EncryptionType) JOptionPane.showInputDialog(null, "Select Encryption Type",
+                "Encryption", JOptionPane.QUESTION_MESSAGE, null, encryptionOptions, encryptionOptions[0]);
+
+        IKey encryptionKey = null;
+
+        switch (encryptionType) {
+            case CAESAR:
+                int shift;
+                while (true) {
+                    String shiftInput = JOptionPane.showInputDialog("Enter shift (integer, positive or negative)");
+                    if (shiftInput == null) {
+                        // User closed the dialog with the "X" button
+                        return;
+                    }
+                    try {
+                        shift = Integer.parseInt(shiftInput);
+                        encryptionKey = new CaesarKey(shift);
+                        break;
+                    } catch (NumberFormatException e) {
+                        JOptionPane.showMessageDialog(null, "Invalid input. Please enter a valid integer.");
+                    }
+                }
+                break;
+
+            case RSA:
+                // TODO: Implement RSA key handling
+                break;
+
+            case NONE:
+                break;
+        }
+
+        _chatEncryptionInfos.put(recipient, new EncryptionInfo(encryptionType, encryptionKey));
+        addChatTab(recipient, recipient);
+        _tabbedPane.setSelectedIndex(_tabbedPane.getTabCount() - 1); // Select the newly added tab
     }
 
+
     private void addChatTab(String title, String recipient) {
-        if (DoesRecipientAlreadyExist(recipient)) {
+        if (doesRecipientAlreadyExist(recipient)) {
             _tabbedPane.setSelectedComponent(_chatAreas.get(recipient).getParent());
             return;
         }
@@ -209,7 +281,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         _messageHistory.put(recipient, new CopyOnWriteArrayList<>());
     }
 
-    private boolean DoesRecipientAlreadyExist(String recipient) {
+    private boolean doesRecipientAlreadyExist(String recipient) {
         return _chatAreas.containsKey(recipient);
     }
 
