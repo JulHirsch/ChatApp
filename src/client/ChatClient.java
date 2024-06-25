@@ -18,7 +18,7 @@ import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatClient extends JFrame implements KeyListener, IChatClient {
-    public static final String GLOBAL_TAB_NAME = "global";
+    public static final String GLOBAL_TAB_NAME = BaseMessage.GLOBAL_RECEIVER;
     private final ConnectionManager _connectionManager;
     private final String _clientName;
 
