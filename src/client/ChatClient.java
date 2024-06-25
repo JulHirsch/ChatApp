@@ -3,6 +3,7 @@ package client;
 import com.formdev.flatlaf.FlatLightLaf;
 import common.Encryption.*;
 import common.Messages.BaseMessage;
+import common.Messages.KeyExchangeMessage;
 import common.Messages.TextMessage;
 import common.Utils;
 
@@ -13,6 +14,7 @@ import java.awt.event.KeyListener;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatClient extends JFrame implements KeyListener, IChatClient {
@@ -45,7 +47,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         } catch (UnsupportedLookAndFeelException e) {
             e.printStackTrace();
         }
-        SwingUtilities.invokeLater(ChatClient::ConnectToServer);
+        SwingUtilities.invokeLater(ChatClient::connectToServer);
     }
 
     private static String promptForIPAddress() {
@@ -78,7 +80,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         return displayMessage;
     }
 
-    private static void ConnectToServer() {
+    private static void connectToServer() {
         String address = promptForIPAddress();
         if (address == null) {
             return;
@@ -89,6 +91,10 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         ChatClient chatClient = new ChatClient(connectionManager, clientName);
         connectionManager.setChatClient(chatClient);
         connectionManager.start();
+    }
+
+    private static boolean isTextMessageEncrypted(boolean isOutgoing, String recipient, TextMessage textMessage) {
+        return !isOutgoing && !Objects.equals(recipient, BaseMessage.GLOBAL_RECEIVER) && textMessage.getEncryptionType() == EncryptionType.CAESAR;
     }
 
     public void appendMessage(TextMessage message) {
@@ -109,24 +115,19 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         }
 
         String text = _inputTextField.getText();
+        if (text.isEmpty()) return;
+        _inputTextField.setText("");
+
         String recipient = _recipientTextField.getText();
-
-        if (text.isEmpty()) {
-            return;
-        }
-
-        if (recipient.isEmpty()) {
-            recipient = BaseMessage.GLOBAL_RECEIVER;
-        }
+        if (recipient.isEmpty()) recipient = BaseMessage.GLOBAL_RECEIVER;
 
         BaseMessage message = new TextMessage(text, recipient, "", _clientName);
         processMessage(message, true);
 
+        // handle encryption
         EncryptionInfo encryptionInfo = _chatEncryptionInfos.get(recipient);
 
-        if (recipient.equals(GLOBAL_TAB_NAME) || encryptionInfo == null || encryptionInfo.getType() == EncryptionType.NONE) {
-            _connectionManager.sendMessage(message);
-        } else {
+        if (doesTextMessageNeedsToBeEncrypted(recipient, encryptionInfo)) {
             String cipherText = "";
 
             switch (encryptionInfo.getType()) {
@@ -143,26 +144,14 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
                     break;
             }
 
-            BaseMessage encryptedMessage = new TextMessage(cipherText, recipient, "", _clientName);
-            _connectionManager.sendMessage(encryptedMessage);
+            message = new TextMessage(cipherText, recipient, "", _clientName, encryptionInfo.getType());
         }
 
-        /*//TODO cleanup
-        if (recipient.equals(GLOBAL_TAB_NAME) || _chatEncryptionInfos.get(recipient).getType() == EncryptionType.NONE) {
-            BaseMessage message = new TextMessage(text, recipient, "", _clientName);
-            processMessage(message, true);
-            _connectionManager.sendMessage(message);
-        } else if (_chatEncryptionInfos.get(recipient).getType() == EncryptionType.CAESAR) {
-            BaseMessage message = new TextMessage(text, recipient, "", _clientName);
-            processMessage(message, true);
+        _connectionManager.sendMessage(message);
+    }
 
-            CaesarEncryptionService encryptionService = new CaesarEncryptionService();
-            String cipherText = encryptionService.encrypt(text, (CaesarKey) _chatEncryptionInfos.get(recipient).getKey());
-            BaseMessage encryptedMessage = new TextMessage(cipherText, recipient, "", _clientName);
-            _connectionManager.sendMessage(encryptedMessage);
-        }*/
-
-        _inputTextField.setText("");
+    private static boolean doesTextMessageNeedsToBeEncrypted(String recipient, EncryptionInfo encryptionInfo) {
+        return !recipient.equals(GLOBAL_TAB_NAME) && encryptionInfo != null && encryptionInfo.getType() != EncryptionType.NONE;
     }
 
     @Override
@@ -216,7 +205,6 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         _isInitialized = true;
     }
 
-
     private void addNewChatTab() {
         String recipient = JOptionPane.showInputDialog("Enter recipient name");
         if (recipient == null || recipient.trim().isEmpty()) {
@@ -267,7 +255,6 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         _tabbedPane.setSelectedIndex(_tabbedPane.getTabCount() - 1); // Select the newly added tab
     }
 
-
     private void addChatTab(String title, String recipient) {
         if (doesRecipientAlreadyExist(recipient)) {
             _tabbedPane.setSelectedComponent(_chatAreas.get(recipient).getParent().getParent());
@@ -315,11 +302,61 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
             chatArea = _chatAreas.get(recipient);
         }
 
-        if (message instanceof TextMessage) {
-            String displayMessage = getDisplayMessage((TextMessage) message);
-            chatArea.append(displayMessage + "\n");
-            chatArea.setCaretPosition(chatArea.getDocument().getLength());
-            _messageHistory.get(recipient).add((TextMessage) message);
+        if (message instanceof KeyExchangeMessage) {
+            //TODO handle
+            return;
         }
+
+        TextMessage textMessage = (TextMessage) message;
+
+        if (isTextMessageEncrypted(isOutgoing, recipient, textMessage)) {
+            textMessage = decryptTextMessage(textMessage, recipient);
+        }
+        String displayMessage = getDisplayMessage(textMessage);
+        chatArea.append(displayMessage + "\n");
+        chatArea.setCaretPosition(chatArea.getDocument().getLength());
+        _messageHistory.get(recipient).add(textMessage);
+    }
+
+    private TextMessage decryptTextMessage(TextMessage textMessage, String recipient) {
+        String plainText = "";
+
+        switch (textMessage.getEncryptionType()) {
+            case CAESAR:
+                if (!_chatEncryptionInfos.containsKey(recipient)) {
+                    askClientForCaesarKey(recipient);
+                }
+                CaesarEncryptionService caesarService = new CaesarEncryptionService();
+                plainText = caesarService.decrypt(textMessage.getText(), (CaesarKey) _chatEncryptionInfos.get(recipient).getKey());
+                break;
+            case RSA:
+                //TODO
+                break;
+            default:
+                break;
+        }
+
+        return new TextMessage(plainText, textMessage.getReceiver(), textMessage.getSender(), textMessage.getCustomName());
+    }
+
+    private void askClientForCaesarKey(String recipient) {
+        CaesarKey encryptionKey = null;
+        int shift;
+        while (true) {
+            String shiftInput = JOptionPane.showInputDialog("Enter shift (integer, positive or negative)");
+            if (shiftInput == null) {
+                // User closed the dialog with the "X" button
+                //TODO
+                shiftInput = "0";
+            }
+            try {
+                shift = Integer.parseInt(shiftInput);
+                encryptionKey = new CaesarKey(shift);
+                break;
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(null, "Invalid input. Please enter a valid integer.");
+            }
+        }
+        _chatEncryptionInfos.put(recipient, new EncryptionInfo(EncryptionType.CAESAR, encryptionKey));
     }
 }
