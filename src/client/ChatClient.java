@@ -3,6 +3,7 @@ package client;
 import common.Messages.BaseMessage;
 import common.Messages.TextMessage;
 import common.Utils;
+import com.formdev.flatlaf.FlatLightLaf;
 
 import javax.swing.*;
 import java.awt.*;
@@ -35,6 +36,12 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
     }
 
     public static void main(String[] args) {
+        try {
+            // Set FlatLaf Look and Feel
+            UIManager.setLookAndFeel(new FlatLightLaf());
+        } catch (UnsupportedLookAndFeelException e) {
+            e.printStackTrace();
+        }
         SwingUtilities.invokeLater(ChatClient::ConnectToServer);
     }
 
@@ -115,6 +122,15 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
     }
 
     private void initializeGUI() {
+        // Set up the menu bar
+        JMenuBar menuBar = new JMenuBar();
+        JMenu menu = new JMenu("Options");
+        JMenuItem addTabMenuItem = new JMenuItem("Add New Chat Tab");
+        addTabMenuItem.addActionListener(e -> addNewChatTab());
+        menu.add(addTabMenuItem);
+        menuBar.add(menu);
+        setJMenuBar(menuBar);
+
         _recipientTextField = new JTextField();
         _recipientTextField.setBorder(BorderFactory.createTitledBorder("Recipient address"));
         _recipientTextField.addKeyListener(this);
@@ -128,28 +144,29 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         _inputTextField.addKeyListener(this);
 
         JButton addButton = new JButton("+");
+        addButton.setPreferredSize(new Dimension(30, 30)); // Adjusted size
+        addButton.setFocusPainted(false);
+        addButton.setMargin(new Insets(2, 2, 2, 2)); // Adjusted margins
         addButton.addActionListener(e -> addNewChatTab());
 
-        JPanel tabPanel = new JPanel(new BorderLayout());
-        tabPanel.add(_tabbedPane, BorderLayout.CENTER);
-        tabPanel.add(addButton, BorderLayout.EAST);
-
         JPanel inputPanel = new JPanel();
-        inputPanel.setLayout(new BorderLayout());
+        inputPanel.setLayout(new BorderLayout(5, 5));
         inputPanel.add(_recipientTextField, BorderLayout.NORTH);
-        inputPanel.add(_inputTextField, BorderLayout.SOUTH);
+        inputPanel.add(_inputTextField, BorderLayout.CENTER);
+        inputPanel.add(addButton, BorderLayout.EAST);
 
-        setLayout(new BorderLayout());
-        add(tabPanel, BorderLayout.CENTER);
+        setLayout(new BorderLayout(10, 10));
+        add(_tabbedPane, BorderLayout.CENTER);
         add(inputPanel, BorderLayout.SOUTH);
 
-        setSize(400, 300);
+        setSize(500, 400);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setVisible(true);
 
         _isInitialized = true;
     }
+
 
     private void addNewChatTab() {
         String recipient = JOptionPane.showInputDialog("Enter recipient name");
