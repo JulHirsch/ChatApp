@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatClient extends JFrame implements KeyListener, IChatClient {
-    public static final String GLOBAL_TAB_NAME = "Global";
+    public static final String GLOBAL_TAB_NAME = "global";
     private final ConnectionManager _connectionManager;
     private final String _clientName;
 
@@ -23,6 +23,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
     private JTextField _recipientTextField;
     private Map<String, JTextArea> _chatAreas;
     private Map<String, List<TextMessage>> _messageHistory;
+    private boolean _isInitialized = false;
 
     public ChatClient(ConnectionManager connectionManager, String clientName) {
         super("Chat");
@@ -117,15 +118,21 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         _recipientTextField = new JTextField();
         _recipientTextField.setBorder(BorderFactory.createTitledBorder("Recipient address"));
         _recipientTextField.addKeyListener(this);
+        _recipientTextField.setVisible(false); // Hide initially
 
         _tabbedPane = new JTabbedPane();
         _tabbedPane.addChangeListener(e -> updateRecipientField());
 
-        addChatTab(GLOBAL_TAB_NAME, BaseMessage.GLOBAL_RECEIVER);
-
         _inputTextField = new JTextField();
         _inputTextField.setBorder(BorderFactory.createTitledBorder("Type message"));
         _inputTextField.addKeyListener(this);
+
+        JButton addButton = new JButton("+");
+        addButton.addActionListener(e -> addNewChatTab());
+
+        JPanel tabPanel = new JPanel(new BorderLayout());
+        tabPanel.add(_tabbedPane, BorderLayout.CENTER);
+        tabPanel.add(addButton, BorderLayout.EAST);
 
         JPanel inputPanel = new JPanel();
         inputPanel.setLayout(new BorderLayout());
@@ -133,13 +140,39 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         inputPanel.add(_inputTextField, BorderLayout.SOUTH);
 
         setLayout(new BorderLayout());
-        add(_tabbedPane, BorderLayout.CENTER);
+        add(tabPanel, BorderLayout.CENTER);
         add(inputPanel, BorderLayout.SOUTH);
 
         setSize(400, 300);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setVisible(true);
+
+        _isInitialized = true;
+    }
+
+    private void addNewChatTab() {
+        String recipient = JOptionPane.showInputDialog("Enter recipient name");
+        if (recipient != null && !recipient.trim().isEmpty()) {
+            String[] encryptionOptions = {"None", "RSA", "AES"};
+            String encryptionType = (String) JOptionPane.showInputDialog(null, "Select Encryption Type",
+                    "Encryption", JOptionPane.QUESTION_MESSAGE, null, encryptionOptions, encryptionOptions[0]);
+
+            String encryptionKey = null;
+            if (!encryptionType.equals("None")) {
+                encryptionKey = JOptionPane.showInputDialog("Enter Encryption Key");
+            }
+
+            // Store encryption settings for the new chat
+            //_encryptionTypes.put(recipient, encryptionType);
+            //_encryptionKeys.put(recipient, encryptionKey);
+
+            // Add chat tab and select it
+            addChatTab(recipient, recipient);
+            _tabbedPane.setSelectedIndex(_tabbedPane.getTabCount() - 1); // Select the newly added tab
+        } else {
+            _tabbedPane.setSelectedIndex(0); // Go back to global tab if creation is cancelled
+        }
     }
 
     private void addChatTab(String title, String recipient) {
@@ -164,9 +197,15 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
     }
 
     private void updateRecipientField() {
+        if (!_isInitialized) return;
+
         int selectedIndex = _tabbedPane.getSelectedIndex();
-        String title = _tabbedPane.getTitleAt(selectedIndex);
-        _recipientTextField.setText(title.equals(GLOBAL_TAB_NAME) ? "" : title);
+        if (selectedIndex >= 0) {
+            String title = _tabbedPane.getTitleAt(selectedIndex);
+            _recipientTextField.setText(title.equals(GLOBAL_TAB_NAME) ? "" : title);
+            boolean isGlobal = title.equals(GLOBAL_TAB_NAME);
+            _recipientTextField.setVisible(!isGlobal);
+        }
     }
 
     private void processMessage(BaseMessage message, boolean isOutgoing) {
