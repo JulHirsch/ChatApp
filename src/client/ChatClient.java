@@ -223,6 +223,10 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
             _tabbedPane.setSelectedIndex(0); // Go back to global tab if creation is cancelled
             return;
         }
+        if (doesRecipientAlreadyExist(recipient)) {
+            _tabbedPane.setSelectedComponent(_chatAreas.get(recipient).getParent().getParent());
+            return;
+        }
 
         // Using enum for encryption options
         EncryptionType[] encryptionOptions = EncryptionType.values();
@@ -266,7 +270,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
 
     private void addChatTab(String title, String recipient) {
         if (doesRecipientAlreadyExist(recipient)) {
-            _tabbedPane.setSelectedComponent(_chatAreas.get(recipient).getParent());
+            _tabbedPane.setSelectedComponent(_chatAreas.get(recipient).getParent().getParent());
             return;
         }
 
