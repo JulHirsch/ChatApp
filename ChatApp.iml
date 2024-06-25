@@ -26,5 +26,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="mockito.core" level="project" />
+    <orderEntry type="library" name="formdev.flatlaf" level="project" />
   </component>
 </module>
