@@ -56,19 +56,15 @@ public class ConnectionManager implements IConnectionManager {
         switch (message.getMessageType()) {
             case TEXT:
                 TextMessage textMessage = (TextMessage) message;
-                _chatClient.appendMessage(textMessage);
+                _chatClient.appendTextMessage(textMessage);
                 break;
             case KEY_EXCHANGE:
                 KeyExchangeMessage keyExchangeMessage = (KeyExchangeMessage) message;
-                processKeyExchangeMessage(keyExchangeMessage);
+                _chatClient.appendKeyExchangeMessage(keyExchangeMessage);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown message type: " + message.getMessageType());
         }
-    }
-
-    private void processKeyExchangeMessage(KeyExchangeMessage keyExchangeMessage) {
-        System.out.println("Received key exchange message from " + keyExchangeMessage.getSender());
     }
 
     public void sendMessage(IMessage message) {

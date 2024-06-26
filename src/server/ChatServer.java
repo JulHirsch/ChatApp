@@ -32,22 +32,24 @@ public class ChatServer implements IChatServer {
     }
 
     private static void logMessage(BaseMessage message) {
+        String logMessage = "";
         if (message instanceof TextMessage m) {
-            String logMessage = String.format(
+            logMessage = String.format(
                     "Text from %s (%s) to %s: %s",
                     m.getCustomName(),
                     m.getSender(),
                     m.getReceiver(),
                     m.getText());
-            System.out.println(logMessage);
+
         } else if (message instanceof KeyExchangeMessage k) {
-            String logMessage = String.format(
+            logMessage = String.format(
                     "Key exchange from %s (%s) to %s: %s",
                     k.getCustomName(),
                     k.getSender(),
                     k.getReceiver(),
                     k.getEncryptionKey());
         }
+        System.out.println(logMessage);
     }
 
     public void start() {

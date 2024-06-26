@@ -3,6 +3,7 @@ package client;
 import com.formdev.flatlaf.FlatLightLaf;
 import common.Encryption.*;
 import common.Messages.BaseMessage;
+import common.Messages.IMessage;
 import common.Messages.KeyExchangeMessage;
 import common.Messages.TextMessage;
 import common.Utils;
@@ -94,13 +95,43 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
     }
 
     private static boolean isTextMessageEncrypted(boolean isOutgoing, String recipient, TextMessage textMessage) {
-        return !isOutgoing && !Objects.equals(recipient, BaseMessage.GLOBAL_RECEIVER) && textMessage.getEncryptionType() == EncryptionType.CAESAR;
+        return !isOutgoing && !Objects.equals(recipient, BaseMessage.GLOBAL_RECEIVER) && textMessage.getEncryptionType() != EncryptionType.NONE;
     }
 
-    public void appendMessage(TextMessage message) {
+    private static boolean doesTextMessageNeedsToBeEncrypted(String recipient, EncryptionInfo encryptionInfo) {
+        return !recipient.equals(GLOBAL_TAB_NAME) && encryptionInfo != null && encryptionInfo.getType() != EncryptionType.NONE;
+    }
+
+    public void appendTextMessage(TextMessage message) {
         SwingUtilities.invokeLater(() -> {
-            processMessage(message, false);
+            processTextMessage(message, false);
         });
+    }
+
+    @Override
+    public void appendKeyExchangeMessage(KeyExchangeMessage keyExchangeMessage) {
+        if (keyExchangeMessage.getEncryptionType() != EncryptionType.RSA) {
+            return;
+        }
+
+        RSAPublicKey rsaPublicKey = RSAPublicKey.fromBase64String(keyExchangeMessage.getEncryptionKey());
+        String recipient = keyExchangeMessage.getSender();
+
+        if (!_chatEncryptionInfos.containsKey(recipient)) {
+            RSAKeyPair rsaKeyPair = RSAKeyGenerator.generateKeyPair();
+
+            _chatEncryptionInfos.put(recipient,
+                    new EncryptionInfo(
+                            EncryptionType.RSA,
+                            rsaKeyPair,
+                            rsaPublicKey
+                    ));
+            IMessage newKeyExchangeMessage = new KeyExchangeMessage("", recipient, _clientName, rsaKeyPair.getPublicKey().toBase64String(), EncryptionType.RSA);
+            _connectionManager.sendMessage(newKeyExchangeMessage);
+            return;
+        }
+
+        _chatEncryptionInfos.get(recipient).setOtherPublicKey(rsaPublicKey);
     }
 
     @Override
@@ -121,8 +152,8 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         String recipient = _recipientTextField.getText();
         if (recipient.isEmpty()) recipient = BaseMessage.GLOBAL_RECEIVER;
 
-        BaseMessage message = new TextMessage(text, recipient, "", _clientName);
-        processMessage(message, true);
+        TextMessage message = new TextMessage(text, recipient, "", _clientName);
+        processTextMessage(message, true);
 
         // handle encryption
         EncryptionInfo encryptionInfo = _chatEncryptionInfos.get(recipient);
@@ -130,13 +161,23 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         if (doesTextMessageNeedsToBeEncrypted(recipient, encryptionInfo)) {
             String cipherText = "";
 
+            if (!_chatEncryptionInfos.containsKey(recipient)) {
+                JOptionPane.showMessageDialog(null, "Key exchange failed.");
+                return;
+            }
+            if (_chatEncryptionInfos.get(recipient).getOtherPublicKey() == null) {
+                JOptionPane.showMessageDialog(null, "Key not received. For your information, RSA encryption with yourself is not possible.");
+                return;
+            }
+
             switch (encryptionInfo.getType()) {
                 case CAESAR:
                     CaesarEncryptionService caesarService = new CaesarEncryptionService();
-                    cipherText = caesarService.encrypt(text, (CaesarKey) encryptionInfo.getKey());
+                    cipherText = caesarService.encrypt(text, (CaesarKey) encryptionInfo.getSymmetricKey());
                     break;
                 case RSA:
-                    // TODO: Implement RSA encryption logic
+                    RSAEncryptionService rsaEncryptionService = new RSAEncryptionService();
+                    cipherText = rsaEncryptionService.encrypt(text, encryptionInfo.getOtherPublicKey());
                     break;
                 case NONE:
                 default:
@@ -148,10 +189,6 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         }
 
         _connectionManager.sendMessage(message);
-    }
-
-    private static boolean doesTextMessageNeedsToBeEncrypted(String recipient, EncryptionInfo encryptionInfo) {
-        return !recipient.equals(GLOBAL_TAB_NAME) && encryptionInfo != null && encryptionInfo.getType() != EncryptionType.NONE;
     }
 
     @Override
@@ -221,11 +258,12 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         EncryptionType encryptionType = (EncryptionType) JOptionPane.showInputDialog(null, "Select Encryption Type",
                 "Encryption", JOptionPane.QUESTION_MESSAGE, null, encryptionOptions, encryptionOptions[0]);
 
-        IKey encryptionKey = null;
+        EncryptionInfo encryptionInfo = null;
 
         switch (encryptionType) {
             case CAESAR:
                 int shift;
+                IKey encryptionKey = null;
                 while (true) {
                     String shiftInput = JOptionPane.showInputDialog("Enter shift (integer, positive or negative)");
                     if (shiftInput == null) {
@@ -240,17 +278,22 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
                         JOptionPane.showMessageDialog(null, "Invalid input. Please enter a valid integer.");
                     }
                 }
+                encryptionInfo = new EncryptionInfo(encryptionType, encryptionKey);
                 break;
 
             case RSA:
-                // TODO: Implement RSA key handling
+                RSAKeyPair rsaKeyPair = RSAKeyGenerator.generateKeyPair();
+                encryptionInfo = new EncryptionInfo(EncryptionType.RSA, rsaKeyPair);
+                IMessage message = new KeyExchangeMessage("", recipient, _clientName, rsaKeyPair.getPublicKey().toBase64String(), EncryptionType.RSA);
+                _connectionManager.sendMessage(message);
                 break;
 
             case NONE:
+                encryptionInfo = new EncryptionInfo(EncryptionType.NONE);
                 break;
         }
 
-        _chatEncryptionInfos.put(recipient, new EncryptionInfo(encryptionType, encryptionKey));
+        _chatEncryptionInfos.put(recipient, encryptionInfo);
         addChatTab(recipient, recipient);
         _tabbedPane.setSelectedIndex(_tabbedPane.getTabCount() - 1); // Select the newly added tab
     }
@@ -288,7 +331,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
         }
     }
 
-    private void processMessage(BaseMessage message, boolean isOutgoing) {
+    private void processTextMessage(TextMessage message, boolean isOutgoing) {
         String recipient;
         if (isOutgoing) {
             recipient = message.getReceiver();
@@ -302,20 +345,13 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
             chatArea = _chatAreas.get(recipient);
         }
 
-        if (message instanceof KeyExchangeMessage) {
-            //TODO handle
-            return;
+        if (isTextMessageEncrypted(isOutgoing, recipient, message)) {
+            message = decryptTextMessage(message, recipient);
         }
-
-        TextMessage textMessage = (TextMessage) message;
-
-        if (isTextMessageEncrypted(isOutgoing, recipient, textMessage)) {
-            textMessage = decryptTextMessage(textMessage, recipient);
-        }
-        String displayMessage = getDisplayMessage(textMessage);
+        String displayMessage = getDisplayMessage(message);
         chatArea.append(displayMessage + "\n");
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
-        _messageHistory.get(recipient).add(textMessage);
+        _messageHistory.get(recipient).add(message);
     }
 
     private TextMessage decryptTextMessage(TextMessage textMessage, String recipient) {
@@ -327,10 +363,14 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
                     askClientForCaesarKey(recipient);
                 }
                 CaesarEncryptionService caesarService = new CaesarEncryptionService();
-                plainText = caesarService.decrypt(textMessage.getText(), (CaesarKey) _chatEncryptionInfos.get(recipient).getKey());
+                plainText = caesarService.decrypt(textMessage.getText(), (CaesarKey) _chatEncryptionInfos.get(recipient).getSymmetricKey());
                 break;
             case RSA:
-                //TODO
+                if (!_chatEncryptionInfos.containsKey(recipient)) {
+                    //TODO handle
+                }
+                RSAEncryptionService rsaEncryptionService = new RSAEncryptionService();
+                plainText = rsaEncryptionService.decrypt(textMessage.getText(), _chatEncryptionInfos.get(recipient).getOwnKeyPair().getPrivateKey());
                 break;
             default:
                 break;

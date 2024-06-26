@@ -1,6 +1,6 @@
 package common.Encryption;
 
-public class RSAKeyPair {
+public class RSAKeyPair implements IKey{
     private final RSAPublicKey publicKey;
     private final RSAPrivateKey privateKey;
 
