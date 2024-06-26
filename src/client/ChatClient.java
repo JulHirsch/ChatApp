@@ -368,6 +368,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
             case RSA:
                 if (!_chatEncryptionInfos.containsKey(recipient)) {
                     //TODO handle
+                    break;
                 }
                 RSAEncryptionService rsaEncryptionService = new RSAEncryptionService();
                 plainText = rsaEncryptionService.decrypt(textMessage.getText(), _chatEncryptionInfos.get(recipient).getOwnKeyPair().getPrivateKey());

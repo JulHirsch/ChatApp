@@ -11,11 +11,6 @@ public enum EncryptionType {
         this.displayName = displayName;
     }
 
-    @Override
-    public String toString() {
-        return displayName;
-    }
-
     public static EncryptionType fromString(String text) {
         for (EncryptionType type : EncryptionType.values()) {
             if (type.displayName.equalsIgnoreCase(text)) {
@@ -23,5 +18,10 @@ public enum EncryptionType {
             }
         }
         return null;
+    }
+
+    @Override
+    public String toString() {
+        return displayName;
     }
 }

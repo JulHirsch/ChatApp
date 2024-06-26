@@ -1,6 +1,9 @@
 package client;
 
-import common.Messages.*;
+import common.Messages.IMessage;
+import common.Messages.KeyExchangeMessage;
+import common.Messages.MessageDeserializer;
+import common.Messages.TextMessage;
 
 import javax.swing.*;
 import java.io.BufferedReader;

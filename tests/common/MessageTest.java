@@ -2,6 +2,7 @@ package common;
 
 import common.Messages.OldMessage;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class MessageTest {
@@ -20,7 +21,7 @@ public class MessageTest {
 
     @Test
     public void testMessageConstructorWithGlobalReceiver() {
-        OldMessage message = new OldMessage("Hello", "customName1",null, "AES", "key1");
+        OldMessage message = new OldMessage("Hello", "customName1", null, "AES", "key1");
 
         assertEquals("Hello", message.getText());
         assertEquals("", message.getSender());

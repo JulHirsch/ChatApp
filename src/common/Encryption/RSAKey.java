@@ -12,25 +12,6 @@ public abstract class RSAKey implements IKey {
         this.exponent = exponent;
     }
 
-    public BigInteger getModulus() {
-        return modulus;
-    }
-
-    public BigInteger getExponent() {
-        return exponent;
-    }
-
-    public String toBase64String() {
-        String modulusBase64 = Base64.getEncoder().encodeToString(modulus.toByteArray());
-        String exponentBase64 = Base64.getEncoder().encodeToString(exponent.toByteArray());
-
-        // Prefix lengths to ensure correct parsing
-        String modulusLength = String.format("%04d", modulusBase64.length());
-        String exponentLength = String.format("%04d", exponentBase64.length());
-
-        return modulusLength + modulusBase64 + exponentLength + exponentBase64;
-    }
-
     public static RSAKey fromBase64String(String base64String, boolean isPrivateKey) {
         if (base64String.length() < 8) {
             throw new IllegalArgumentException("Invalid Base64 string format.");
@@ -56,5 +37,24 @@ public abstract class RSAKey implements IKey {
         } else {
             return new RSAPublicKey(modulus, exponent);
         }
+    }
+
+    public BigInteger getModulus() {
+        return modulus;
+    }
+
+    public BigInteger getExponent() {
+        return exponent;
+    }
+
+    public String toBase64String() {
+        String modulusBase64 = Base64.getEncoder().encodeToString(modulus.toByteArray());
+        String exponentBase64 = Base64.getEncoder().encodeToString(exponent.toByteArray());
+
+        // Prefix lengths to ensure correct parsing
+        String modulusLength = String.format("%04d", modulusBase64.length());
+        String exponentLength = String.format("%04d", exponentBase64.length());
+
+        return modulusLength + modulusBase64 + exponentLength + exponentBase64;
     }
 }

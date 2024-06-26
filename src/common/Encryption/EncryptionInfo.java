@@ -45,15 +45,15 @@ public class EncryptionInfo {
         return _symmetricKey;
     }
 
-    public RSAKeyPair getOwnKeyPair(){
+    public RSAKeyPair getOwnKeyPair() {
         return _myKeyPair;
     }
 
-    public RSAPublicKey getOtherPublicKey(){
+    public RSAPublicKey getOtherPublicKey() {
         return _otherPublicKey;
     }
 
-    public void setOtherPublicKey(RSAPublicKey key){
+    public void setOtherPublicKey(RSAPublicKey key) {
         this._otherPublicKey = key;
     }
 }

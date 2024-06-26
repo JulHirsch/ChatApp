@@ -10,8 +10,8 @@ public abstract class BaseMessage implements IMessage {
     private final MessageType _messageType;
     private final String _receiver;
     private final String _customName;
-    private String _sender;
     private final EncryptionType _encryptionType;
+    private String _sender;
 
     public BaseMessage(MessageType messageType, String sender, String receiver, String customName) {
         this._messageType = messageType;
