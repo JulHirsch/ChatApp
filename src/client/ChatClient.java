@@ -165,7 +165,7 @@ public class ChatClient extends JFrame implements KeyListener, IChatClient {
                 JOptionPane.showMessageDialog(null, "Key exchange failed.");
                 return;
             }
-            if (_chatEncryptionInfos.get(recipient).getOtherPublicKey() == null) {
+            if (_chatEncryptionInfos.get(recipient).getType() == EncryptionType.RSA && _chatEncryptionInfos.get(recipient).getOtherPublicKey() == null) {
                 JOptionPane.showMessageDialog(null, "Key not received. For your information, RSA encryption with yourself is not possible.");
                 return;
             }
